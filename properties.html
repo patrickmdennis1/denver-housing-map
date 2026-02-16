@@ -38,6 +38,106 @@
     color: #aaa;
     z-index: 10;
   }
+  #detail-card {
+    display: none;
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 340px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    padding: 20px;
+    z-index: 100;
+    border: 1px solid #e0e0e0;
+  }
+  #detail-card.visible { display: block; }
+  #detail-card .close-btn {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    cursor: pointer;
+    font-size: 18px;
+    color: #aaa;
+    background: none;
+    border: none;
+    line-height: 1;
+  }
+  #detail-card .close-btn:hover { color: #333; }
+  #detail-card h3 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    padding-right: 24px;
+  }
+  #detail-card .address {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 12px;
+  }
+  #detail-card .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  #detail-card .stat {
+    text-align: center;
+    padding: 6px 0;
+    background: #f5f5f5;
+    border-radius: 6px;
+  }
+  #detail-card .stat .val {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1a1a1a;
+  }
+  #detail-card .stat .lbl {
+    font-size: 10px;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  #detail-card .desc {
+    font-size: 13px;
+    color: #555;
+    line-height: 1.4;
+    margin-bottom: 14px;
+  }
+  #detail-card .listing-link {
+    display: block;
+    text-align: center;
+    padding: 10px;
+    background: #1a73e8;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: background 0.15s;
+  }
+  #detail-card .listing-link:hover { background: #1557b0; }
+  #detail-card .score-bar {
+    margin-bottom: 12px;
+  }
+  #detail-card .score-bar .bar-bg {
+    height: 6px;
+    background: #eee;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  #detail-card .score-bar .bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s;
+  }
+  #detail-card .score-bar .score-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #888;
+    margin-bottom: 3px;
+  }
 </style>
 </head>
 <body>
@@ -49,6 +149,23 @@
 
 <div id="chart"></div>
 <div class="legend-note">For-sale properties and missing sqft excluded. Howie Score (0-100) sizes the bubbles.</div>
+
+<div id="detail-card">
+  <button class="close-btn" onclick="closeCard()">&times;</button>
+  <h3 id="dc-name"></h3>
+  <div class="address" id="dc-address"></div>
+  <div class="score-bar">
+    <div class="score-label"><span>Howie Score</span><span id="dc-score-num"></span></div>
+    <div class="bar-bg"><div class="bar-fill" id="dc-score-fill"></div></div>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="val" id="dc-rent"></div><div class="lbl">Rent</div></div>
+    <div class="stat"><div class="val" id="dc-sqft"></div><div class="lbl">Sqft</div></div>
+    <div class="stat"><div class="val" id="dc-beds"></div><div class="lbl">Beds</div></div>
+  </div>
+  <div class="desc" id="dc-desc"></div>
+  <a class="listing-link" id="dc-link" href="#" target="_blank">View Listing &rarr;</a>
+</div>
 
 <script>
 const properties = [
@@ -205,11 +322,28 @@ const config = {
 
 Plotly.newPlot('chart', [trace, budgetLine, budgetLabel, ...valueLines, valueLabels], layout, config);
 
-// Click to open listing
+// Click to show detail card
 document.getElementById('chart').on('plotly_click', function(data) {
-  const url = data.points[0]?.customdata;
-  if (url) window.open(url, '_blank');
+  const pt = data.points[0];
+  if (!pt || pt.curveNumber !== 0) return;
+  const p = properties[pt.pointIndex];
+  document.getElementById('dc-name').textContent = p.name;
+  document.getElementById('dc-address').textContent = p.address;
+  document.getElementById('dc-rent').textContent = '$' + p.rent.toLocaleString();
+  document.getElementById('dc-sqft').textContent = p.sqft.toLocaleString();
+  document.getElementById('dc-beds').textContent = p.beds;
+  document.getElementById('dc-desc').textContent = p.desc;
+  document.getElementById('dc-link').href = p.url;
+  document.getElementById('dc-score-num').textContent = p.score + '/100';
+  const fill = document.getElementById('dc-score-fill');
+  fill.style.width = p.score + '%';
+  fill.style.background = p.score >= 80 ? '#2E7D32' : p.score >= 60 ? '#66BB6A' : p.score >= 40 ? '#FDD835' : '#FF9800';
+  document.getElementById('detail-card').classList.add('visible');
 });
+
+function closeCard() {
+  document.getElementById('detail-card').classList.remove('visible');
+}
 </script>
 </body>
 </html>
