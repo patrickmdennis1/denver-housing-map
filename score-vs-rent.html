@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Candidate Properties — Score vs Rent</title>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #fafafa;
+    color: #1a1a1a;
+  }
+  #header {
+    padding: 24px 32px 16px;
+    background: #fff;
+    border-bottom: 1px solid #eee;
+  }
+  #header h1 {
+    font-size: 20px;
+    font-weight: 700;
+  }
+  #header p {
+    font-size: 13px;
+    color: #888;
+    margin-top: 4px;
+  }
+  #chart {
+    width: 100%;
+    height: calc(100vh - 80px);
+  }
+  .legend-note {
+    position: absolute;
+    bottom: 16px;
+    left: 32px;
+    font-size: 11px;
+    color: #aaa;
+    z-index: 10;
+  }
+  #detail-card {
+    display: none;
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 340px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    padding: 20px;
+    z-index: 100;
+    border: 1px solid #e0e0e0;
+  }
+  #detail-card.visible { display: block; }
+  #detail-card .close-btn {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    cursor: pointer;
+    font-size: 18px;
+    color: #aaa;
+    background: none;
+    border: none;
+    line-height: 1;
+  }
+  #detail-card .close-btn:hover { color: #333; }
+  #detail-card h3 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    padding-right: 24px;
+  }
+  #detail-card .neighborhood-tag {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+  #detail-card .address {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 12px;
+  }
+  #detail-card .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  #detail-card .stat {
+    text-align: center;
+    padding: 6px 0;
+    background: #f5f5f5;
+    border-radius: 6px;
+  }
+  #detail-card .stat .val {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1a1a1a;
+  }
+  #detail-card .stat .lbl {
+    font-size: 10px;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  #detail-card .desc {
+    font-size: 13px;
+    color: #555;
+    line-height: 1.4;
+    margin-bottom: 14px;
+  }
+  #detail-card .listing-link {
+    display: block;
+    text-align: center;
+    padding: 10px;
+    background: #1a73e8;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: background 0.15s;
+  }
+  #detail-card .listing-link:hover { background: #1557b0; }
+  #detail-card .score-bar {
+    margin-bottom: 12px;
+  }
+  #detail-card .score-bar .bar-bg {
+    height: 6px;
+    background: #eee;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  #detail-card .score-bar .bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s;
+  }
+  #detail-card .score-bar .score-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #888;
+    margin-bottom: 3px;
+  }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>Candidate Properties — Desirability vs Cost</h1>
+  <p>Top-left is the sweet spot: high Howie Score, low rent. Bubble size = sqft. Color = neighborhood. Click any point for details.</p>
+</div>
+
+<div id="chart"></div>
+<div class="legend-note">For-sale properties excluded. Properties without sqft shown as small dots.</div>
+
+<div id="detail-card">
+  <button class="close-btn" onclick="closeCard()">&times;</button>
+  <h3 id="dc-name"></h3>
+  <div id="dc-hood-tag" class="neighborhood-tag"></div>
+  <div class="address" id="dc-address"></div>
+  <div class="score-bar">
+    <div class="score-label"><span>Howie Score</span><span id="dc-score-num"></span></div>
+    <div class="bar-bg"><div class="bar-fill" id="dc-score-fill"></div></div>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="val" id="dc-rent"></div><div class="lbl">Rent</div></div>
+    <div class="stat"><div class="val" id="dc-sqft"></div><div class="lbl">Sqft</div></div>
+    <div class="stat"><div class="val" id="dc-beds"></div><div class="lbl">Beds</div></div>
+  </div>
+  <div class="desc" id="dc-desc"></div>
+  <a class="listing-link" id="dc-link" href="#" target="_blank">View Listing &rarr;</a>
+</div>
+
+<script>
+const properties = [
+  { name: "The Perrenoud #402", address: "1699 N Downing St #402", rent: 2375, sqft: 1665, beds: 2, score: 95, hood: "City Park West", desc: "1901 penthouse — birdcage elevator, stained glass, 20ft ceilings", url: "https://www.apartments.com/1699-n-downing-st-denver-co/h5xcer2/" },
+  { name: "3033 Welton St", address: "3033 Welton St", rent: 2995, sqft: 1554, beds: 3, score: 92, hood: "Five Points", desc: "~1884 Five Points. Exposed brick, 2 fireplaces, fire pit yard", url: "https://www.rent.com/r/3033-welton-st-denver-co-lv2660882333" },
+  { name: "575 N Ogden St", address: "575 N Ogden St", rent: 2650, sqft: 1350, beds: 3, score: 88, hood: "Capitol Hill", desc: "Craftsman bungalow — fireplace, honeybee hives, front porch", url: "https://www.rentable.co/denver-co/long-realty-and-property-management-3-bed-1-bath-single-family-in-the-heart-of-denver" },
+  { name: "3222 W Hayward Pl", address: "3222 W Hayward Pl", rent: 2750, sqft: 1332, beds: 2, score: 86, hood: "Highland", desc: "1890 Victorian cottage in Highland. Hot tub, skylights, furnished", url: "https://www.apartments.com/3222-w-hayward-pl-denver-co/p68ryht/" },
+  { name: "267 S Franklin St", address: "267 S Franklin St", rent: 3080, sqft: 1211, beds: 2, score: 82, hood: "Washington Park", desc: "1891 Wash Park Historic District. Stained glass, original woodwork", url: "https://www.apartments.com/267-s-franklin-st-denver-co/mhz484k/" },
+  { name: "3101 Meade St", address: "3101 Meade St", rent: 4250, sqft: 1823, beds: 3, score: 80, hood: "Highland", desc: "1905 Denver Square one block from Highland Square. Garage, yard", url: "https://hotpads.com/3101-meade-st-denver-co-80211-1kz8jv8/pad" },
+  { name: "920 E 24th Ave", address: "920 E 24th Ave", rent: 4800, sqft: 1829, beds: 3, score: 78, hood: "Five Points", desc: "1890 Victorian conversion in Five Points. Near budget ceiling", url: "https://www.zillow.com/homedetails/920-E-24th-Ave-Denver-CO-80205/109688098_zpid/" },
+  { name: "769 Monroe St", address: "769 Monroe St", rent: 2805, sqft: null, beds: 2, score: 76, hood: "Congress Park", desc: "Congress Park bungalow. 2-car garage, fenced yard, W/D, pets OK", url: "https://www.rent.com/r/769-monroe-st-denver-co-lv1440778231" },
+  { name: "3720 Lowell Blvd", address: "3720 Lowell Blvd", rent: 3600, sqft: 1210, beds: 3, score: 74, hood: "Highland", desc: "1890 Victorian in Highland. Front porch, cats + dogs OK", url: "https://www.apartments.com/enchanting-west-highland-victorian-home-by-denver-co/meczdyj/" },
+  { name: "2820 Champa St", address: "2820 Champa St", rent: 3950, sqft: 2629, beds: 5, score: 70, hood: "Five Points", desc: "1886 Five Points. Exposed brick, fireplace, 2629sqft. No active listing", url: "https://www.zillow.com/homedetails/2210-N-Marion-St-Denver-CO-80205/88905567_zpid/" },
+  { name: "2100 Humboldt St", address: "2100 Humboldt St", rent: 2250, sqft: null, beds: 2, score: 68, hood: "Five Points", desc: "Cole Victorian near Ben & Caitlin. 2bd/2ba. Pets OK, W/D. Great value", url: "https://www.apartments.com/2100-humboldt-st-denver-co/mvbw1cl/" },
+  { name: "3048 California St", address: "3048 California St", rent: 2500, sqft: 966, beds: 2, score: 65, hood: "Five Points", desc: "~1885 Curtis Park. Exposed brick, 4 parking spots, in-unit W/D", url: "https://www.apartments.com/3048-california-st-denver-co/34gwm3g/" },
+  { name: "787 Corona St", address: "787 Corona St", rent: 1700, sqft: null, beds: 2, score: 60, hood: "Capitol Hill", desc: "Budget pick — 1925 Cap Hill brick. Private balcony, patio, in-unit W/D", url: "https://cornerstoneapartments.com/our-buildings/787-corona/" },
+  { name: "421 S Lincoln St", address: "421 S Lincoln St", rent: 2795, sqft: 2778, beds: 5, score: 55, hood: "Washington Park", desc: "1888 original Denver home. 5bd, 2778sqft. Huge value if solid", url: "https://hotpads.com/421-s-lincoln-st-denver-co-80209-1my060y/pad" },
+  { name: "1243 S Lincoln St", address: "1243 S Lincoln St", rent: 2995, sqft: null, beds: 4, score: 52, hood: "Platt Park", desc: "Platt Park. 4bd. Price dropped from $3395. Near RIGAR gym", url: "" },
+  { name: "1688 Quitman St", address: "1688 Quitman St", rent: 4020, sqft: 1506, beds: 2, score: 45, hood: "Sloan Lake", desc: "Sloan's Lake area. Weaker neighborhood fit", url: "https://www.zillow.com/homedetails/1688-Quitman-St-ID1013132P-Denver-CO-80204/459288643_zpid/" },
+  { name: "2900 Wyandot St 101", address: "2900 Wyandot St, Unit 101", rent: 4300, sqft: 2002, beds: 3, score: 38, hood: "Sunnyside", desc: "1925 Sunnyside. No active listing — verify availability", url: "https://www.zillow.com/homedetails/2900-Wyandot-St-UNIT-101-Denver-CO-80211/82593755_zpid/" },
+  { name: "2605 N Elizabeth St", address: "2605 N Elizabeth St", rent: 3000, sqft: 1539, beds: 4, score: 35, hood: "Five Points", desc: "1929 Five Points. No active listing. Multi-unit building", url: "https://www.zillow.com/homedetails/2605-N-Elizabeth-St-Denver-CO-80205/129899120_zpid/" },
+  { name: "2431 Stout St", address: "2431 Stout St", rent: 6495, sqft: 2187, beds: 2, score: 30, hood: "Five Points", desc: "Over budget. Furnished, smart home. Built 2005, not historic", url: "https://www.zillow.com/homedetails/2431-Stout-St-Denver-CO-80205/82257191_zpid/" },
+  { name: "1343 N High St 8", address: "1343 N High St, Apt 8", rent: 1800, sqft: 737, beds: 2, score: 22, hood: "Capitol Hill", desc: "Budget option. 737sqft — very small. No cats. No charm", url: "https://rental.turbotenant.com/p/1343-n-high-street-denver-co-unit-8/158753" },
+  { name: "1770 S Washington St", address: "1770 S Washington St", rent: 7535, sqft: 3480, beds: 5, score: 15, hood: "Platt Park", desc: "Way over budget. Built 2017. No cats. Wrong on every priority", url: "https://www.zillow.com/homedetails/1770-S-Washington-St-Denver-CO-80210/13369602_zpid/" },
+];
+
+// Neighborhood color palette
+const hoodColors = {
+  "Five Points":     "#E65100",
+  "Highland":        "#7B1FA2",
+  "Capitol Hill":    "#C2185B",
+  "Washington Park": "#F9A825",
+  "Congress Park":   "#2E7D32",
+  "City Park West":  "#1565C0",
+  "Sunnyside":       "#00838F",
+  "Sloan Lake":      "#4E342E",
+  "Platt Park":      "#546E7A",
+};
+
+// Group properties by neighborhood for legend traces
+const hoods = [...new Set(properties.map(p => p.hood))];
+const traces = hoods.map(hood => {
+  const group = properties.filter(p => p.hood === hood);
+  const color = hoodColors[hood] || '#999';
+  return {
+    x: group.map(p => p.rent),
+    y: group.map(p => p.score),
+    mode: 'markers+text',
+    type: 'scatter',
+    name: hood,
+    text: group.map(p => p.name),
+    textposition: 'top center',
+    textfont: { size: 9, color: '#666' },
+    hovertext: group.map(p =>
+      `<b>${p.name}</b><br>` +
+      `${p.address}<br>` +
+      `<b>$${p.rent.toLocaleString()}/mo</b> · ${p.sqft ? p.sqft.toLocaleString() + ' sqft · ' : ''}${p.beds} bed<br>` +
+      `Howie Score: ${p.score} · ${p.hood}<br>` +
+      `<i>${p.desc}</i>`
+    ),
+    hoverinfo: 'text',
+    marker: {
+      size: group.map(p => p.sqft ? Math.max(Math.sqrt(p.sqft) * 0.8, 14) : 14),
+      color: color,
+      line: { width: 2, color: '#fff' },
+      opacity: 0.85,
+      sizemode: 'diameter'
+    },
+    customdata: group.map(p => properties.indexOf(p))
+  };
+});
+
+// Budget line (vertical)
+const budgetLine = {
+  x: [5000, 5000],
+  y: [0, 100],
+  mode: 'lines',
+  type: 'scatter',
+  line: { color: '#D32F2F', width: 1.5, dash: 'dash' },
+  hoverinfo: 'none',
+  showlegend: false
+};
+
+// Budget label
+const budgetLabel = {
+  x: [5150],
+  y: [97],
+  mode: 'text',
+  type: 'scatter',
+  text: ['$5K Budget'],
+  textfont: { size: 10, color: '#D32F2F' },
+  hoverinfo: 'none',
+  showlegend: false
+};
+
+// Sweet spot shading annotation
+const layout = {
+  xaxis: {
+    title: { text: 'Monthly Rent', font: { size: 13 } },
+    range: [1400, 8000],
+    gridcolor: '#f0f0f0',
+    zeroline: false,
+    tickprefix: '$',
+    tickformat: ','
+  },
+  yaxis: {
+    title: { text: 'Howie Score', font: { size: 13 } },
+    range: [0, 105],
+    gridcolor: '#f0f0f0',
+    zeroline: false,
+  },
+  plot_bgcolor: '#fafafa',
+  paper_bgcolor: '#fff',
+  margin: { t: 20, r: 20, b: 60, l: 60 },
+  legend: {
+    orientation: 'h',
+    y: -0.15,
+    x: 0.5,
+    xanchor: 'center',
+    font: { size: 11 },
+  },
+  hovermode: 'closest',
+  shapes: [
+    // Sweet spot zone (high score, low rent)
+    {
+      type: 'rect',
+      x0: 1400, x1: 3500,
+      y0: 75, y1: 105,
+      fillcolor: 'rgba(46, 125, 50, 0.06)',
+      line: { width: 1, color: 'rgba(46, 125, 50, 0.2)', dash: 'dot' },
+      layer: 'below'
+    },
+    // Danger zone (low score, high rent)
+    {
+      type: 'rect',
+      x0: 5000, x1: 8000,
+      y0: 0, y1: 40,
+      fillcolor: 'rgba(211, 47, 47, 0.04)',
+      line: { width: 1, color: 'rgba(211, 47, 47, 0.15)', dash: 'dot' },
+      layer: 'below'
+    }
+  ],
+  annotations: [
+    {
+      x: 2000, y: 103,
+      text: 'Sweet Spot',
+      font: { size: 11, color: '#2E7D32' },
+      showarrow: false,
+      xanchor: 'left'
+    },
+    {
+      x: 7800, y: 5,
+      text: 'Avoid',
+      font: { size: 11, color: '#D32F2F' },
+      showarrow: false,
+      xanchor: 'right'
+    }
+  ]
+};
+
+const config = {
+  responsive: true,
+  displayModeBar: true,
+  modeBarButtonsToRemove: ['lasso2d', 'select2d', 'autoScale2d'],
+  displaylogo: false
+};
+
+Plotly.newPlot('chart', [...traces, budgetLine, budgetLabel], layout, config);
+
+// Click to show detail card
+document.getElementById('chart').on('plotly_click', function(data) {
+  const pt = data.points[0];
+  if (!pt || pt.customdata === undefined) return;
+  const p = properties[pt.customdata];
+  if (!p) return;
+  document.getElementById('dc-name').textContent = p.name;
+  document.getElementById('dc-address').textContent = p.address;
+  document.getElementById('dc-rent').textContent = '$' + p.rent.toLocaleString();
+  document.getElementById('dc-sqft').textContent = p.sqft ? p.sqft.toLocaleString() : '—';
+  document.getElementById('dc-beds').textContent = p.beds;
+  document.getElementById('dc-desc').textContent = p.desc;
+  const tag = document.getElementById('dc-hood-tag');
+  tag.textContent = p.hood;
+  tag.style.background = hoodColors[p.hood] || '#999';
+  const link = document.getElementById('dc-link');
+  if (p.url) {
+    link.href = p.url;
+    link.style.display = 'block';
+  } else {
+    link.style.display = 'none';
+  }
+  document.getElementById('dc-score-num').textContent = p.score + '/100';
+  const fill = document.getElementById('dc-score-fill');
+  fill.style.width = p.score + '%';
+  fill.style.background = p.score >= 80 ? '#2E7D32' : p.score >= 60 ? '#66BB6A' : p.score >= 40 ? '#FDD835' : '#FF9800';
+  document.getElementById('detail-card').classList.add('visible');
+});
+
+function closeCard() {
+  document.getElementById('detail-card').classList.remove('visible');
+}
+</script>
+</body>
+</html>
