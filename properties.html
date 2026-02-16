@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Candidate Properties — Rent vs Sqft</title>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #fafafa;
+    color: #1a1a1a;
+  }
+  #header {
+    padding: 24px 32px 16px;
+    background: #fff;
+    border-bottom: 1px solid #eee;
+  }
+  #header h1 {
+    font-size: 20px;
+    font-weight: 700;
+  }
+  #header p {
+    font-size: 13px;
+    color: #888;
+    margin-top: 4px;
+  }
+  #chart {
+    width: 100%;
+    height: calc(100vh - 80px);
+  }
+  .legend-note {
+    position: absolute;
+    bottom: 16px;
+    left: 32px;
+    font-size: 11px;
+    color: #aaa;
+    z-index: 10;
+  }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>Candidate Properties — Rent vs Square Footage</h1>
+  <p>Bubble size = Howie Score. Color = price per sqft. Click any point for details.</p>
+</div>
+
+<div id="chart"></div>
+<div class="legend-note">For-sale properties and missing sqft excluded. Howie Score (0-100) sizes the bubbles.</div>
+
+<script>
+const properties = [
+  { name: "The Perrenoud #402", address: "1699 N Downing St #402", rent: 2375, sqft: 1665, beds: 2, score: 95, desc: "1901 penthouse — birdcage elevator, stained glass, 20ft ceilings", url: "https://www.apartments.com/1699-n-downing-st-denver-co/h5xcer2/" },
+  { name: "3033 Welton St", address: "3033 Welton St", rent: 2995, sqft: 1554, beds: 3, score: 92, desc: "~1884 Five Points. Exposed brick, 2 fireplaces, fire pit yard", url: "https://www.rent.com/r/3033-welton-st-denver-co-lv2660882333" },
+  { name: "575 N Ogden St", address: "575 N Ogden St", rent: 2650, sqft: 1350, beds: 3, score: 88, desc: "Craftsman bungalow — fireplace, honeybee hives, front porch", url: "https://www.rentable.co/denver-co/long-realty-and-property-management-3-bed-1-bath-single-family-in-the-heart-of-denver" },
+  { name: "3222 W Hayward Pl", address: "3222 W Hayward Pl", rent: 2750, sqft: 1332, beds: 2, score: 86, desc: "1890 Victorian cottage in Highland. Hot tub, skylights, furnished", url: "https://www.apartments.com/3222-w-hayward-pl-denver-co/p68ryht/" },
+  { name: "267 S Franklin St", address: "267 S Franklin St", rent: 3080, sqft: 1211, beds: 2, score: 82, desc: "1891 Wash Park Historic District. Stained glass, original woodwork", url: "https://www.apartments.com/267-s-franklin-st-denver-co/mhz484k/" },
+  { name: "3101 Meade St", address: "3101 Meade St", rent: 4250, sqft: 1823, beds: 3, score: 80, desc: "1905 Denver Square one block from Highland Square. Garage, yard", url: "https://hotpads.com/3101-meade-st-denver-co-80211-1kz8jv8/pad" },
+  { name: "920 E 24th Ave", address: "920 E 24th Ave", rent: 4800, sqft: 1829, beds: 3, score: 78, desc: "1890 Victorian conversion in Five Points. Near budget ceiling", url: "https://www.zillow.com/homedetails/920-E-24th-Ave-Denver-CO-80205/109688098_zpid/" },
+  { name: "3720 Lowell Blvd", address: "3720 Lowell Blvd", rent: 3600, sqft: 1210, beds: 3, score: 74, desc: "1890 Victorian in Highland. Front porch, cats + dogs OK", url: "https://www.apartments.com/enchanting-west-highland-victorian-home-by-denver-co/meczdyj/" },
+  { name: "2820 Champa St", address: "2820 Champa St", rent: 3950, sqft: 2629, beds: 5, score: 70, desc: "1886 Five Points. Exposed brick, fireplace, 2629sqft. No active listing", url: "https://www.zillow.com/homedetails/2210-N-Marion-St-Denver-CO-80205/88905567_zpid/" },
+  { name: "3048 California St", address: "3048 California St", rent: 2500, sqft: 966, beds: 2, score: 65, desc: "~1885 Curtis Park. Exposed brick, 4 parking spots, in-unit W/D", url: "https://www.apartments.com/3048-california-st-denver-co/34gwm3g/" },
+  { name: "421 S Lincoln St", address: "421 S Lincoln St", rent: 2795, sqft: 2778, beds: 5, score: 55, desc: "1888 original Denver home. 5bd, 2778sqft. Huge value if solid", url: "https://hotpads.com/421-s-lincoln-st-denver-co-80209-1my060y/pad" },
+  { name: "1688 Quitman St", address: "1688 Quitman St", rent: 4020, sqft: 1506, beds: 2, score: 45, desc: "Sloan's Lake area. Weaker neighborhood fit", url: "https://www.zillow.com/homedetails/1688-Quitman-St-ID1013132P-Denver-CO-80204/459288643_zpid/" },
+  { name: "2900 Wyandot St 101", address: "2900 Wyandot St, Unit 101", rent: 4300, sqft: 2002, beds: 3, score: 38, desc: "1925 Sunnyside. No active listing — verify availability", url: "https://www.zillow.com/homedetails/2900-Wyandot-St-UNIT-101-Denver-CO-80211/82593755_zpid/" },
+  { name: "2605 N Elizabeth St", address: "2605 N Elizabeth St", rent: 3000, sqft: 1539, beds: 4, score: 35, desc: "1929 Five Points. No active listing. Multi-unit building", url: "https://www.zillow.com/homedetails/2605-N-Elizabeth-St-Denver-CO-80205/129899120_zpid/" },
+  { name: "2431 Stout St", address: "2431 Stout St", rent: 6495, sqft: 2187, beds: 2, score: 30, desc: "Over budget. Furnished, smart home. Built 2005, not historic", url: "https://www.zillow.com/homedetails/2431-Stout-St-Denver-CO-80205/82257191_zpid/" },
+  { name: "1343 N High St 8", address: "1343 N High St, Apt 8", rent: 1800, sqft: 737, beds: 2, score: 22, desc: "Budget option. 737sqft — very small. No cats. No charm", url: "https://rental.turbotenant.com/p/1343-n-high-street-denver-co-unit-8/158753" },
+  { name: "1770 S Washington St", address: "1770 S Washington St", rent: 7535, sqft: 3480, beds: 5, score: 15, desc: "Way over budget. Built 2017. No cats. Wrong on every priority", url: "https://www.zillow.com/homedetails/1770-S-Washington-St-Denver-CO-80210/13369602_zpid/" },
+];
+
+const sqft = properties.map(p => p.sqft);
+const rent = properties.map(p => p.rent);
+const ppsf = properties.map(p => Math.round(p.rent / p.sqft * 100) / 100);
+const sizes = properties.map(p => Math.max(p.score * 0.6, 12));
+const names = properties.map(p => p.name);
+const hoverText = properties.map(p =>
+  `<b>${p.name}</b><br>` +
+  `${p.address}<br>` +
+  `<b>$${p.rent.toLocaleString()}/mo</b> · ${p.sqft.toLocaleString()} sqft · ${p.beds} bed<br>` +
+  `$${(p.rent / p.sqft).toFixed(2)}/sqft · Howie Score: ${p.score}<br>` +
+  `<i>${p.desc}</i>`
+);
+
+const trace = {
+  x: sqft,
+  y: rent,
+  mode: 'markers+text',
+  type: 'scatter',
+  text: names,
+  textposition: 'top center',
+  textfont: { size: 10, color: '#666' },
+  hovertext: hoverText,
+  hoverinfo: 'text',
+  marker: {
+    size: sizes,
+    color: ppsf,
+    colorscale: [
+      [0, '#2E7D32'],
+      [0.35, '#66BB6A'],
+      [0.5, '#FDD835'],
+      [0.7, '#FF9800'],
+      [1, '#D32F2F']
+    ],
+    colorbar: {
+      title: { text: '$/sqft', font: { size: 12 } },
+      thickness: 14,
+      len: 0.5,
+      tickfont: { size: 10 },
+      tickprefix: '$'
+    },
+    line: { width: 2, color: '#fff' },
+    opacity: 0.9,
+    sizemode: 'diameter'
+  },
+  customdata: properties.map(p => p.url)
+};
+
+// Budget line
+const budgetLine = {
+  x: [600, 3600],
+  y: [5000, 5000],
+  mode: 'lines',
+  type: 'scatter',
+  line: { color: '#D32F2F', width: 1.5, dash: 'dash' },
+  hoverinfo: 'none',
+  showlegend: false
+};
+
+// Budget label
+const budgetLabel = {
+  x: [3500],
+  y: [5150],
+  mode: 'text',
+  type: 'scatter',
+  text: ['$5K Budget'],
+  textfont: { size: 10, color: '#D32F2F' },
+  hoverinfo: 'none',
+  showlegend: false
+};
+
+// Value diagonal (reference lines for $/sqft)
+const valueLines = [1.5, 2.0, 2.5, 3.0].map(rate => ({
+  x: [600, 3600],
+  y: [600 * rate, 3600 * rate],
+  mode: 'lines',
+  type: 'scatter',
+  line: { color: '#e0e0e0', width: 1, dash: 'dot' },
+  hoverinfo: 'none',
+  showlegend: false
+}));
+
+const valueLabels = {
+  x: [3600, 3600, 3600, 3600],
+  y: [3600 * 1.5 + 100, 3600 * 2.0 + 100, 3600 * 2.5 + 100, 3600 * 3.0 + 100],
+  mode: 'text',
+  type: 'scatter',
+  text: ['$1.50/sqft', '$2.00/sqft', '$2.50/sqft', '$3.00/sqft'],
+  textfont: { size: 9, color: '#ccc' },
+  textposition: 'middle right',
+  hoverinfo: 'none',
+  showlegend: false
+};
+
+const layout = {
+  xaxis: {
+    title: { text: 'Square Footage', font: { size: 13 } },
+    range: [500, 3800],
+    gridcolor: '#f0f0f0',
+    zeroline: false,
+    tickformat: ','
+  },
+  yaxis: {
+    title: { text: 'Monthly Rent', font: { size: 13 } },
+    range: [1400, 8000],
+    gridcolor: '#f0f0f0',
+    zeroline: false,
+    tickprefix: '$',
+    tickformat: ','
+  },
+  plot_bgcolor: '#fafafa',
+  paper_bgcolor: '#fff',
+  margin: { t: 20, r: 80, b: 60, l: 80 },
+  showlegend: false,
+  hovermode: 'closest',
+  annotations: [{
+    x: 1665, y: 2375,
+    ax: -60, ay: -40,
+    text: 'Best Value',
+    font: { size: 11, color: '#2E7D32', weight: 'bold' },
+    arrowcolor: '#2E7D32',
+    arrowsize: 0.8,
+    arrowwidth: 1.5
+  }]
+};
+
+const config = {
+  responsive: true,
+  displayModeBar: true,
+  modeBarButtonsToRemove: ['lasso2d', 'select2d', 'autoScale2d'],
+  displaylogo: false
+};
+
+Plotly.newPlot('chart', [trace, budgetLine, budgetLabel, ...valueLines, valueLabels], layout, config);
+
+// Click to open listing
+document.getElementById('chart').on('plotly_click', function(data) {
+  const url = data.points[0]?.customdata;
+  if (url) window.open(url, '_blank');
+});
+</script>
+</body>
+</html>
