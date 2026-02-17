@@ -4,37 +4,146 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Candidate Properties — Score vs Rent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: #fafafa;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f5f5f0;
     color: #1a1a1a;
   }
   #header {
-    padding: 24px 32px 16px;
-    background: #fff;
-    border-bottom: 1px solid #eee;
+    padding: 28px 36px 20px;
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    color: #fff;
+    border-bottom: 3px solid #e8c547;
   }
-  #header h1 { font-size: 20px; font-weight: 700; }
-  #header p { font-size: 13px; color: #888; margin-top: 4px; }
-  #chart { width: 100%; height: 70vh; min-height: 400px; position: relative; }
+  #header h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+  #header p { font-size: 13px; color: rgba(255,255,255,0.6); margin-top: 6px; font-weight: 400; }
+  #nav {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  #nav a {
+    display: inline-block;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.15s ease;
+  }
+  #nav a.active {
+    background: #e8c547;
+    color: #1a1a1a;
+  }
+  #nav a:not(.active) {
+    background: rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.7);
+  }
+  #nav a:not(.active):hover {
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+  }
+  #chart-wrap {
+    padding: 24px 24px 0;
+  }
+  #chart {
+    width: 100%;
+    height: 68vh;
+    min-height: 400px;
+    position: relative;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04);
+    overflow: hidden;
+  }
+  #stats-bar {
+    display: flex;
+    gap: 12px;
+    padding: 16px 24px;
+    flex-wrap: wrap;
+  }
+  .stat-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: #fff;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #555;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    cursor: default;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .stat-chip:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 12px rgba(0,0,0,0.1);
+  }
+  .stat-chip .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
   #table-section {
-    padding: 16px 32px 32px;
-    background: #fff;
-    border-top: 1px solid #eee;
+    padding: 8px 24px 40px;
   }
-  #table-section h2 { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
+  #table-section h2 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #1a1a1a;
+  }
+  .table-wrap {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    overflow: hidden;
+  }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th { text-align: left; padding: 8px 10px; border-bottom: 2px solid #e0e0e0; color: #666; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
-  td { padding: 7px 10px; border-bottom: 1px solid #f0f0f0; }
-  tr:hover td { background: #f8f8f8; }
-  .score-pill { display: inline-block; padding: 2px 8px; border-radius: 10px; color: #fff; font-weight: 700; font-size: 12px; }
+  thead { position: sticky; top: 0; z-index: 2; }
+  th {
+    text-align: left;
+    padding: 10px 12px;
+    background: #fafaf8;
+    border-bottom: 2px solid #e8e8e4;
+    color: #888;
+    font-weight: 600;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+  td { padding: 10px 12px; border-bottom: 1px solid #f4f4f2; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafaf8; }
+  .score-pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    color: #fff;
+    font-weight: 700;
+    font-size: 12px;
+    min-width: 36px;
+    text-align: center;
+  }
   .score-high { background: #2E7D32; }
   .score-med { background: #66BB6A; }
   .score-low { background: #FDD835; color: #333; }
   .score-bad { background: #FF9800; }
+  .tier-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+  }
   .hood-pill { display: inline-block; padding: 2px 8px; border-radius: 10px; color: #fff; font-size: 11px; }
   a.listing { color: #1a73e8; text-decoration: none; font-weight: 500; }
   a.listing:hover { text-decoration: underline; }
@@ -44,25 +153,25 @@
     position: fixed;
     z-index: 10000;
     width: 320px;
-    background: rgba(255,255,255,0.97);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(0,0,0,0.08);
-    border-radius: 14px;
-    box-shadow: 0 8px 40px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+    background: rgba(255,255,255,0.98);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(0,0,0,0.06);
+    border-radius: 16px;
+    box-shadow: 0 12px 48px rgba(0,0,0,0.15), 0 2px 8px rgba(0,0,0,0.06);
     padding: 0;
     pointer-events: auto;
     opacity: 0;
-    transform: translateY(8px);
-    transition: opacity 0.2s ease, transform 0.2s ease;
+    transform: translateY(8px) scale(0.98);
+    transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
     overflow: hidden;
   }
   .prop-card.visible {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
   .prop-card-header {
-    padding: 14px 16px 10px;
+    padding: 16px 16px 10px;
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
@@ -76,18 +185,30 @@
   }
   .prop-card-hood {
     font-size: 11px;
-    margin-top: 2px;
+    margin-top: 3px;
     font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .prop-card-tier {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 5px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 0.3px;
   }
   .prop-card-score {
     flex-shrink: 0;
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 800;
     color: #fff;
   }
@@ -95,16 +216,16 @@
     display: grid;
     grid-template-columns: 1fr 1fr 1fr 1fr;
     gap: 1px;
-    background: #f0f0f0;
+    background: #eee;
     margin: 0;
   }
   .prop-card-stat {
     background: #fff;
-    padding: 8px 10px;
+    padding: 10px 10px;
     text-align: center;
   }
   .prop-card-stat-value {
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 700;
     color: #1a1a1a;
   }
@@ -112,14 +233,14 @@
     font-size: 9px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: #999;
-    margin-top: 1px;
+    color: #aaa;
+    margin-top: 2px;
   }
   .prop-card-desc {
-    padding: 10px 16px;
+    padding: 12px 16px;
     font-size: 12px;
     color: #666;
-    line-height: 1.4;
+    line-height: 1.5;
     font-style: italic;
     border-top: 1px solid #f0f0f0;
   }
@@ -132,10 +253,10 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 8px 14px;
+    padding: 9px 16px;
     background: #1a1a1a;
     color: #fff;
-    border-radius: 8px;
+    border-radius: 10px;
     font-size: 12px;
     font-weight: 600;
     text-decoration: none;
@@ -153,14 +274,16 @@
     fill: currentColor;
   }
   .prop-card-dismiss {
-    padding: 8px 12px;
+    padding: 9px 14px;
     background: #f5f5f5;
     color: #999;
     border: none;
-    border-radius: 8px;
+    border-radius: 10px;
     font-size: 12px;
+    font-weight: 500;
     cursor: pointer;
     transition: background 0.15s ease;
+    font-family: inherit;
   }
   .prop-card-dismiss:hover {
     background: #eee;
@@ -168,11 +291,11 @@
   }
   .prop-card-alert {
     display: inline-block;
-    padding: 2px 6px;
+    padding: 2px 7px;
     background: #FFF8E1;
     color: #F57F17;
     border: 1px solid #FFECB3;
-    border-radius: 4px;
+    border-radius: 5px;
     font-size: 10px;
     font-weight: 600;
     font-style: normal;
@@ -183,17 +306,25 @@
 <body>
 
 <div id="header">
-  <h1>Candidate Properties — Desirability vs Cost</h1>
-  <p>Top-left is the sweet spot: high Overall Score, low rent. Bubble size = sqft. Color = neighborhood. Hover or click any point for details.</p>
+  <h1>Candidate Properties</h1>
+  <p>Top-left is the sweet spot: high Score, low rent. Bubble size = sqft. Color = neighborhood. Hover or click any point for details.</p>
+  <div id="nav">
+    <a href="properties.html">Rent vs Sqft</a>
+    <a class="active" href="score-vs-rent.html">Score vs Rent</a>
+  </div>
 </div>
 
-<div id="chart"></div>
+<div id="stats-bar"></div>
+
+<div id="chart-wrap">
+  <div id="chart"></div>
+</div>
 
 <div class="prop-card" id="prop-card">
   <div class="prop-card-header">
     <div>
       <div class="prop-card-title" id="card-title"></div>
-      <div class="prop-card-hood" id="card-hood"></div>
+      <div class="prop-card-hood"><span id="card-hood"></span><span class="prop-card-tier" id="card-tier"></span></div>
     </div>
     <div class="prop-card-score" id="card-score"></div>
   </div>
@@ -216,12 +347,14 @@
 
 <div id="table-section">
   <h2>All Properties</h2>
-  <table>
-    <thead>
-      <tr><th>Score</th><th>Property</th><th>Neighborhood</th><th>Rent</th><th>Beds</th><th>Listing</th></tr>
-    </thead>
-    <tbody id="table-body"></tbody>
-  </table>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Score</th><th>Tier</th><th>Property</th><th>Neighborhood</th><th>Rent</th><th>Beds</th><th>Listing</th></tr>
+      </thead>
+      <tbody id="table-body"></tbody>
+    </table>
+  </div>
 </div>
 
 <script>
@@ -238,33 +371,53 @@ const hoodColors = {
   "Cheesman Park": "#78909C",
 };
 
+const tierColors = { A: '#2E7D32', B: '#1565C0', C: '#F9A825', D: '#E65100', F: '#C62828' };
+const tierLabels = { A: 'Best Buy', B: 'Strong Pick', C: 'Solid Option', D: 'Stretch', F: 'Poor Value' };
+
 const properties = [
-  { name: "1623 Race St", address: "1623 Race St, Denver, CO 80206", rent: 3444, sqft: 1887, beds: 3, score: 86, hood: "City Park West", desc: "1883 dark wood moldings, fireplace, clawfoot tub, French windows. Walk Score 93. TOP PICK", url: "https://www.zillow.com/homedetails/1623-Race-St-Denver-CO-80206/13321719_zpid/" },
-  { name: "600 Fillmore St", address: "600 Fillmore St, Denver, CO 80206", rent: 3295, sqft: 1906, beds: 2, score: 80, hood: "Congress Park", desc: "Tudor brick, fireplace, fenced yard, pets OK. Pleasant but unremarkable interiors", url: "https://www.zillow.com/homedetails/600-Fillmore-St-Denver-CO-80206/13328212_zpid/" },
-  { name: "2631 N Humboldt St", address: "2631 N Humboldt St, Denver, CO 80205", rent: 3197, sqft: 1760, beds: 3, score: 82, hood: "Five Points", desc: "Victorian, dramatic staircase, fireplace, French doors, huge yard. Heads Up: No pets allowed, 6-month lease only", url: "https://www.zillow.com/homedetails/2631-N-Humboldt-St-Denver-CO-80205/13306745_zpid/" },
-  { name: "2900 Wyandot St 101", address: "2900 Wyandot St, Unit 101", rent: 4300, sqft: 2002, beds: 3, score: 76, hood: "Highland", desc: "LoHi industrial-modern. Wrong aesthetic, basic bathrooms for price", url: "https://www.zillow.com/homedetails/2900-Wyandot-St-UNIT-101-Denver-CO-80211/82593755_zpid/" },
-  { name: "3033 Welton St", address: "3033 Welton St", rent: 2995, sqft: 1554, beds: 3, score: 78, hood: "Five Points", desc: "1884 Five Points. Extensive exposed brick, fire pit patio, Victorian exterior. Carpet upstairs", url: "https://www.rent.com/r/3033-welton-st-denver-co-lv2660882333" },
-  { name: "2746 N Williams St", address: "2746 N Williams St", rent: 2700, sqft: 1045, beds: 2, score: 79, hood: "Five Points", desc: "1895 Whittier. Exposed brick in 3 rooms, pergola yard, dogs OK. 4 blocks from Ben & Caitlin", url: "https://www.zillow.com/homedetails/2746-N-Williams-St-Denver-CO-80205/13306659_zpid/" },
-  { name: "3048 California St", address: "3048 California St", rent: 2500, sqft: 966, beds: 2, score: 74, hood: "Five Points", desc: "1884 Victorian, exposed brick, iron fence. $2,500 + $75 utils", url: "https://www.apartments.com/3048-california-st-denver-co/34gwm3g/" },
-  { name: "817 29th St", address: "817 29th St", rent: 6000, sqft: 2822, beds: 3, score: 72, hood: "Five Points", desc: "1894 Denver Square, original fireplace. Over budget but 84 days = negotiate", url: "https://www.zillow.com/homedetails/817-29th-St-Denver-CO-80205/444549553_zpid/" },
-  { name: "1346 S Pennsylvania", address: "1346 S Pennsylvania St", rent: 3450, sqft: 1500, beds: 3, score: 71, hood: "Platt Park", desc: "1906 brick bungalow, arched doorways, generic kitchen reno", url: "https://www.zillow.com/homedetails/1346-S-Pennsylvania-St-Denver-CO-80210/13368691_zpid/" },
-  { name: "2605 N Elizabeth St", address: "2605 N Elizabeth St", rent: 3000, sqft: 1539, beds: 3, score: 70, hood: "Five Points", desc: "Exposed brick, Skyland. Re-listed", url: "https://www.zillow.com/homedetails/2605-N-Elizabeth-St-Denver-CO-80205/129899120_zpid/" },
-  { name: "2229 N Lafayette", address: "2229 N Lafayette St", rent: 2350, sqft: 864, beds: 2, score: 70, hood: "Five Points", desc: "Lease takeover Mar 1, great location, no charm", url: "https://www.zillow.com/homedetails/2229-N-Lafayette-St-Denver-CO-80205/63492556_zpid/" },
-  { name: "641 Steele St", address: "641 Steele St, Denver, CO 80206", rent: 4000, sqft: 3111, beds: 3, score: 84, hood: "Congress Park", desc: "Tudor bungalow, 7th Ave Historic. Custom built-ins, 2 fireplaces, garden suite. Dogs OK", url: "https://www.zillow.com/homedetails/641-Steele-St-Denver-CO-80206/13327700_zpid/" },
-  { name: "3336 N Lafayette", address: "3336 N Lafayette St", rent: 3690, sqft: 2056, beds: 3, score: 55, hood: "Five Points", desc: "1888 Victorian. Bungalow managed, 31% above Zestimate", url: "https://www.zillow.com/homedetails/3336-N-Lafayette-St-Denver-CO-80205/13305808_zpid/" },
-  { name: "2820 Champa St", address: "2820 Champa St", rent: 3950, sqft: 2629, beds: 4, score: 82, hood: "Five Points", desc: "1886 Victorian, exceptional. Heads Up: No pets allowed, ADU construction on-site", url: "https://www.zillow.com/homedetails/2820-Champa-St-Denver-CO-80205/13307550_zpid/" },
-  { name: "920 E 24th Ave", address: "920 E 24th Ave", rent: 4775, sqft: 2000, beds: 3, score: 72, hood: "Five Points", desc: "1890 Queen Anne, San Rafael. Heads Up: No pets allowed, priced high at $4,775", url: "https://www.zillow.com/homedetails/920-E-24th-Ave-Denver-CO-80205/109688098_zpid/" },
-  { name: "267 S Franklin St", address: "267 S Franklin St", rent: 3080, sqft: 1211, beds: 2, score: 72, hood: "Washington Park", desc: "1907 Wash Park, stained glass. Check Back Soon availability", url: "https://www.apartments.com/267-s-franklin-st-denver-co/mhz484k/" },
-  { name: "The Perrenoud #402", address: "1699 N Downing St #402", rent: 2395, sqft: 1665, beds: 2, score: 68, hood: "Capitol Hill", desc: "1901 building extraordinary, unit modernized. Heads Up: No pets allowed (HOA restriction)", url: "https://www.realtor.com/rentals/details/1699-N-Downing-St-Apt-402_Denver_CO_80218_M24561-18651" },
-  { name: "2358 N Ogden St B", address: "2358 N Ogden St, Unit B", rent: 3625, sqft: 1216, beds: 3, score: 58, hood: "Five Points", desc: "1890 Five Points. Heads Up: Furnished corporate rental, no pets allowed", url: "https://www.zillow.com/homedetails/2358-N-Ogden-St-B-Denver-CO-80205/61433505_zpid/" },
-  { name: "1770 S Washington", address: "1770 S Washington St", rent: 7535, sqft: 3480, beds: 5, score: 58, hood: "Platt Park", desc: "Architect Carlos Alvarez. Heads Up: No cats, $7,535/mo, 4-month lease only", url: "https://www.zillow.com/homedetails/1770-S-Washington-St-Denver-CO-80210/13369602_zpid/" },
-  { name: "3720 Lowell Blvd", address: "3720 Lowell Blvd", rent: 3600, sqft: 1210, beds: 3, score: 50, hood: "Highland", desc: "1890 Victorian Highland. Heads Up: Bungalow co-living arrangement (shared spaces)", url: "https://www.apartments.com/enchanting-west-highland-victorian-home-by-denver-co/meczdyj/" },
-  { name: "1541 E 25th Ave", address: "1541 E 25th Ave", rent: 3290, sqft: 3169, beds: 4, score: 45, hood: "Five Points", desc: "Impressive Whittier property. Heads Up: Bungalow co-living arrangement (shared spaces)", url: "https://www.zillow.com/homedetails/1541-E-25th-Ave-Denver-CO-80205/88905959_zpid/" },
-  { name: "1766 N Emerson St", address: "1766 N Emerson St", rent: 2300, sqft: 1450, beds: 3, score: 65, hood: "Capitol Hill", desc: "1908 Victorian. Fireplace, arched windows, but generic kitchen reno, carpet, cats only", url: "https://www.zillow.com/homedetails/1766-N-Emerson-St-Denver-CO-80218/442693318_zpid/" },
-  { name: "1688 Quitman St", address: "1688 Quitman St", rent: 4020, sqft: 1506, beds: 2, score: 35, hood: "Sloan Lake", desc: "2017 modern, zero character. Heads Up: Furnished corporate rental", url: "https://www.zillow.com/homedetails/1688-Quitman-St-ID1013132P-Denver-CO-80204/459288643_zpid/" },
+  { name: "1623 Race St", address: "1623 Race St, Denver, CO 80206", rent: 3444, sqft: 1887, beds: 3, score: 86, hood: "City Park West", tier: "A", desc: "1883 dark wood moldings, fireplace, clawfoot tub, French windows. Walk Score 93. TOP PICK", url: "https://www.zillow.com/homedetails/1623-Race-St-Denver-CO-80206/13321719_zpid/" },
+  { name: "600 Fillmore St", address: "600 Fillmore St, Denver, CO 80206", rent: 3295, sqft: 1906, beds: 2, score: 80, hood: "Congress Park", tier: "A", desc: "Tudor brick, fireplace, fenced yard, pets OK. Pleasant but unremarkable interiors", url: "https://www.zillow.com/homedetails/600-Fillmore-St-Denver-CO-80206/13328212_zpid/" },
+  { name: "2631 N Humboldt St", address: "2631 N Humboldt St, Denver, CO 80205", rent: 3197, sqft: 1760, beds: 3, score: 82, hood: "Five Points", tier: "A", desc: "Victorian, dramatic staircase, fireplace, French doors, huge yard. Heads Up: No pets allowed, 6-month lease only", url: "https://www.zillow.com/homedetails/2631-N-Humboldt-St-Denver-CO-80205/13306745_zpid/" },
+  { name: "2900 Wyandot St 101", address: "2900 Wyandot St, Unit 101", rent: 4300, sqft: 2002, beds: 3, score: 76, hood: "Highland", tier: "D", desc: "LoHi industrial-modern. Wrong aesthetic, basic bathrooms for price", url: "https://www.zillow.com/homedetails/2900-Wyandot-St-UNIT-101-Denver-CO-80211/82593755_zpid/" },
+  { name: "3033 Welton St", address: "3033 Welton St", rent: 2995, sqft: 1554, beds: 3, score: 78, hood: "Five Points", tier: "B", desc: "1884 Five Points. Extensive exposed brick, fire pit patio, Victorian exterior. Carpet upstairs", url: "https://www.rent.com/r/3033-welton-st-denver-co-lv2660882333" },
+  { name: "2746 N Williams St", address: "2746 N Williams St", rent: 2700, sqft: 1045, beds: 2, score: 79, hood: "Five Points", tier: "B", desc: "1895 Whittier. Exposed brick in 3 rooms, pergola yard, dogs OK. 4 blocks from Ben & Caitlin", url: "https://www.zillow.com/homedetails/2746-N-Williams-St-Denver-CO-80205/13306659_zpid/" },
+  { name: "3048 California St", address: "3048 California St", rent: 2500, sqft: 966, beds: 2, score: 74, hood: "Five Points", tier: "C", desc: "1884 Victorian, exposed brick, iron fence. $2,500 + $75 utils", url: "https://www.apartments.com/3048-california-st-denver-co/34gwm3g/" },
+  { name: "817 29th St", address: "817 29th St", rent: 6000, sqft: 2822, beds: 3, score: 72, hood: "Five Points", tier: "D", desc: "1894 Denver Square, original fireplace. Over budget but 84 days = negotiate", url: "https://www.zillow.com/homedetails/817-29th-St-Denver-CO-80205/444549553_zpid/" },
+  { name: "1346 S Pennsylvania", address: "1346 S Pennsylvania St", rent: 3450, sqft: 1500, beds: 3, score: 71, hood: "Platt Park", tier: "C", desc: "1906 brick bungalow, arched doorways, generic kitchen reno", url: "https://www.zillow.com/homedetails/1346-S-Pennsylvania-St-Denver-CO-80210/13368691_zpid/" },
+  { name: "2605 N Elizabeth St", address: "2605 N Elizabeth St", rent: 3000, sqft: 1539, beds: 3, score: 70, hood: "Five Points", tier: "C", desc: "Exposed brick, Skyland. Re-listed", url: "https://www.zillow.com/homedetails/2605-N-Elizabeth-St-Denver-CO-80205/129899120_zpid/" },
+  { name: "2229 N Lafayette", address: "2229 N Lafayette St", rent: 2350, sqft: 864, beds: 2, score: 70, hood: "Five Points", tier: "C", desc: "Lease takeover Mar 1, great location, no charm", url: "https://www.zillow.com/homedetails/2229-N-Lafayette-St-Denver-CO-80205/63492556_zpid/" },
+  { name: "641 Steele St", address: "641 Steele St, Denver, CO 80206", rent: 4000, sqft: 3111, beds: 3, score: 84, hood: "Congress Park", tier: "B", desc: "Tudor bungalow, 7th Ave Historic. Custom built-ins, 2 fireplaces, garden suite. Dogs OK", url: "https://www.zillow.com/homedetails/641-Steele-St-Denver-CO-80206/13327700_zpid/" },
+  { name: "3336 N Lafayette", address: "3336 N Lafayette St", rent: 3690, sqft: 2056, beds: 3, score: 55, hood: "Five Points", tier: "F", desc: "1888 Victorian. Bungalow managed, 31% above Zestimate", url: "https://www.zillow.com/homedetails/3336-N-Lafayette-St-Denver-CO-80205/13305808_zpid/" },
+  { name: "2820 Champa St", address: "2820 Champa St", rent: 3950, sqft: 2629, beds: 4, score: 82, hood: "Five Points", tier: "B", desc: "1886 Victorian, exceptional. Heads Up: No pets allowed, ADU construction on-site", url: "https://www.zillow.com/homedetails/2820-Champa-St-Denver-CO-80205/13307550_zpid/" },
+  { name: "920 E 24th Ave", address: "920 E 24th Ave", rent: 4775, sqft: 2000, beds: 3, score: 72, hood: "Five Points", tier: "D", desc: "1890 Queen Anne, San Rafael. Heads Up: No pets allowed, priced high at $4,775", url: "https://www.zillow.com/homedetails/920-E-24th-Ave-Denver-CO-80205/109688098_zpid/" },
+  { name: "267 S Franklin St", address: "267 S Franklin St", rent: 3080, sqft: 1211, beds: 2, score: 72, hood: "Washington Park", tier: "C", desc: "1907 Wash Park, stained glass. Check Back Soon availability", url: "https://www.apartments.com/267-s-franklin-st-denver-co/mhz484k/" },
+  { name: "The Perrenoud #402", address: "1699 N Downing St #402", rent: 2395, sqft: 1665, beds: 2, score: 68, hood: "Capitol Hill", tier: "C", desc: "1901 building extraordinary, unit modernized. Heads Up: No pets allowed (HOA restriction)", url: "https://www.realtor.com/rentals/details/1699-N-Downing-St-Apt-402_Denver_CO_80218_M24561-18651" },
+  { name: "2358 N Ogden St B", address: "2358 N Ogden St, Unit B", rent: 3625, sqft: 1216, beds: 3, score: 58, hood: "Five Points", tier: "F", desc: "1890 Five Points. Heads Up: Furnished corporate rental, no pets allowed", url: "https://www.zillow.com/homedetails/2358-N-Ogden-St-B-Denver-CO-80205/61433505_zpid/" },
+  { name: "1770 S Washington", address: "1770 S Washington St", rent: 7535, sqft: 3480, beds: 5, score: 58, hood: "Platt Park", tier: "F", desc: "Architect Carlos Alvarez. Heads Up: No cats, $7,535/mo, 4-month lease only", url: "https://www.zillow.com/homedetails/1770-S-Washington-St-Denver-CO-80210/13369602_zpid/" },
+  { name: "3720 Lowell Blvd", address: "3720 Lowell Blvd", rent: 3600, sqft: 1210, beds: 3, score: 50, hood: "Highland", tier: "F", desc: "1890 Victorian Highland. Heads Up: Bungalow co-living arrangement (shared spaces)", url: "https://www.apartments.com/enchanting-west-highland-victorian-home-by-denver-co/meczdyj/" },
+  { name: "1541 E 25th Ave", address: "1541 E 25th Ave", rent: 3290, sqft: 3169, beds: 4, score: 45, hood: "Five Points", tier: "D", desc: "Impressive Whittier property. Heads Up: Bungalow co-living arrangement (shared spaces)", url: "https://www.zillow.com/homedetails/1541-E-25th-Ave-Denver-CO-80205/88905959_zpid/" },
+  { name: "1766 N Emerson St", address: "1766 N Emerson St", rent: 2300, sqft: 1450, beds: 3, score: 65, hood: "Capitol Hill", tier: "C", desc: "1908 Victorian. Fireplace, arched windows, but generic kitchen reno, carpet, cats only", url: "https://www.zillow.com/homedetails/1766-N-Emerson-St-Denver-CO-80218/442693318_zpid/" },
+  { name: "1688 Quitman St", address: "1688 Quitman St", rent: 4020, sqft: 1506, beds: 2, score: 35, hood: "Sloan Lake", tier: "F", desc: "2017 modern, zero character. Heads Up: Furnished corporate rental", url: "https://www.zillow.com/homedetails/1688-Quitman-St-ID1013132P-Denver-CO-80204/459288643_zpid/" },
 ];
 
-// Chart uses properties with rent
+// Stats bar
+const statsBar = document.getElementById('stats-bar');
+const tierCounts = {};
+properties.forEach(p => { if (p.tier) tierCounts[p.tier] = (tierCounts[p.tier] || 0) + 1; });
+['A','B','C','D','F'].forEach(t => {
+  if (!tierCounts[t]) return;
+  const chip = document.createElement('div');
+  chip.className = 'stat-chip';
+  chip.innerHTML = `<span class="dot" style="background:${tierColors[t]}"></span>${t} ${tierLabels[t]}: ${tierCounts[t]}`;
+  statsBar.appendChild(chip);
+});
+const avgScore = Math.round(properties.reduce((s,p) => s + p.score, 0) / properties.length);
+const avgChip = document.createElement('div');
+avgChip.className = 'stat-chip';
+avgChip.innerHTML = `Avg Score: ${avgScore}`;
+statsBar.appendChild(avgChip);
+
+// Chart
 const chartProps = properties.filter(p => p.rent);
 const hoods = [...new Set(chartProps.map(p => p.hood))];
 
@@ -277,7 +430,7 @@ const traces = hoods.map(hood => {
     mode: 'markers+text', type: 'scatter', name: hood,
     text: group.map(p => p.name),
     textposition: 'top center',
-    textfont: { size: 9, color: '#666' },
+    textfont: { size: 9, color: '#888', family: 'Inter' },
     hoverinfo: 'none',
     marker: {
       size: group.map(p => p.sqft ? Math.max(Math.sqrt(p.sqft) * 0.8, 14) : 14),
@@ -289,23 +442,24 @@ const traces = hoods.map(hood => {
   };
 });
 
-const budgetLine = { x: [5000, 5000], y: [0, 100], mode: 'lines', type: 'scatter', line: { color: '#D32F2F', width: 1.5, dash: 'dash' }, hoverinfo: 'none', showlegend: false };
-const budgetLabel = { x: [5150], y: [97], mode: 'text', type: 'scatter', text: ['$5K Budget'], textfont: { size: 10, color: '#D32F2F' }, hoverinfo: 'none', showlegend: false };
+const budgetLine = { x: [5000, 5000], y: [0, 100], mode: 'lines', type: 'scatter', line: { color: 'rgba(211,47,47,0.4)', width: 1.5, dash: 'dash' }, hoverinfo: 'none', showlegend: false };
+const budgetLabel = { x: [5150], y: [97], mode: 'text', type: 'scatter', text: ['$5K Budget'], textfont: { size: 10, color: 'rgba(211,47,47,0.6)', family: 'Inter' }, hoverinfo: 'none', showlegend: false };
 
 const layout = {
-  xaxis: { title: { text: 'Monthly Rent', font: { size: 13 } }, range: [1400, 8000], gridcolor: '#f0f0f0', zeroline: false, tickprefix: '$', tickformat: ',' },
-  yaxis: { title: { text: 'Overall Score', font: { size: 13 } }, range: [0, 105], gridcolor: '#f0f0f0', zeroline: false },
-  plot_bgcolor: '#fafafa', paper_bgcolor: '#fff',
-  margin: { t: 20, r: 20, b: 60, l: 60 },
-  legend: { orientation: 'h', y: -0.15, x: 0.5, xanchor: 'center', font: { size: 11 } },
+  xaxis: { title: { text: 'Monthly Rent', font: { size: 12, family: 'Inter', color: '#888' } }, range: [1400, 8000], gridcolor: '#f0f0ee', zeroline: false, tickprefix: '$', tickformat: ',', tickfont: { family: 'Inter', size: 11, color: '#aaa' }, linecolor: '#e8e8e4' },
+  yaxis: { title: { text: 'Overall Score', font: { size: 12, family: 'Inter', color: '#888' } }, range: [0, 105], gridcolor: '#f0f0ee', zeroline: false, tickfont: { family: 'Inter', size: 11, color: '#aaa' }, linecolor: '#e8e8e4' },
+  plot_bgcolor: '#fafaf8', paper_bgcolor: '#fff',
+  margin: { t: 24, r: 24, b: 56, l: 60 },
+  legend: { orientation: 'h', y: -0.15, x: 0.5, xanchor: 'center', font: { size: 11, family: 'Inter' } },
   hovermode: 'closest',
+  font: { family: 'Inter' },
   shapes: [
-    { type: 'rect', x0: 1400, x1: 3500, y0: 75, y1: 105, fillcolor: 'rgba(46,125,50,0.06)', line: { width: 1, color: 'rgba(46,125,50,0.2)', dash: 'dot' }, layer: 'below' },
-    { type: 'rect', x0: 5000, x1: 8000, y0: 0, y1: 40, fillcolor: 'rgba(211,47,47,0.04)', line: { width: 1, color: 'rgba(211,47,47,0.15)', dash: 'dot' }, layer: 'below' }
+    { type: 'rect', x0: 1400, x1: 3500, y0: 75, y1: 105, fillcolor: 'rgba(46,125,50,0.05)', line: { width: 1, color: 'rgba(46,125,50,0.15)', dash: 'dot' }, layer: 'below' },
+    { type: 'rect', x0: 5000, x1: 8000, y0: 0, y1: 40, fillcolor: 'rgba(211,47,47,0.03)', line: { width: 1, color: 'rgba(211,47,47,0.1)', dash: 'dot' }, layer: 'below' }
   ],
   annotations: [
-    { x: 2000, y: 103, text: 'Sweet Spot', font: { size: 11, color: '#2E7D32' }, showarrow: false, xanchor: 'left' },
-    { x: 7800, y: 5, text: 'Avoid', font: { size: 11, color: '#D32F2F' }, showarrow: false, xanchor: 'right' }
+    { x: 2000, y: 103, text: 'Sweet Spot', font: { size: 11, color: '#2E7D32', family: 'Inter' }, showarrow: false, xanchor: 'left' },
+    { x: 7800, y: 5, text: 'Avoid', font: { size: 11, color: '#D32F2F', family: 'Inter' }, showarrow: false, xanchor: 'right' }
   ]
 };
 
@@ -326,18 +480,30 @@ function scoreColor(s) {
   return '#FF9800';
 }
 
+function tierColor(t) {
+  return tierColors[t] || '#999';
+}
+
 function showCard(p, mouseX, mouseY) {
   document.getElementById('card-title').textContent = p.name;
   const hoodEl = document.getElementById('card-hood');
   hoodEl.textContent = p.hood;
   hoodEl.style.color = hoodColors[p.hood] || '#888';
+  const tierEl = document.getElementById('card-tier');
+  if (p.tier) {
+    tierEl.textContent = p.tier;
+    tierEl.style.background = tierColor(p.tier);
+    tierEl.style.display = 'inline-block';
+  } else {
+    tierEl.style.display = 'none';
+  }
   const scoreEl = document.getElementById('card-score');
   scoreEl.textContent = p.score;
   scoreEl.style.background = scoreColor(p.score);
   document.getElementById('card-rent').textContent = '$' + p.rent.toLocaleString();
-  document.getElementById('card-sqft').textContent = p.sqft ? p.sqft.toLocaleString() : '—';
+  document.getElementById('card-sqft').textContent = p.sqft ? p.sqft.toLocaleString() : '\u2014';
   document.getElementById('card-beds').textContent = p.beds;
-  document.getElementById('card-ppsf').textContent = (p.rent && p.sqft) ? '$' + (p.rent / p.sqft).toFixed(2) : '—';
+  document.getElementById('card-ppsf').textContent = (p.rent && p.sqft) ? '$' + (p.rent / p.sqft).toFixed(2) : '\u2014';
 
   const descEl = document.getElementById('card-desc');
   const desc = p.desc || '';
@@ -356,7 +522,6 @@ function showCard(p, mouseX, mouseY) {
     linkEl.style.display = 'none';
   }
 
-  // Position card near mouse but keep it on screen
   const cw = 320, ch = card.offsetHeight || 280;
   let left = mouseX + 16;
   let top = mouseY - 20;
@@ -413,7 +578,6 @@ chartEl.on('plotly_click', (data) => {
   showCard(p, evt.clientX || evt.pageX, evt.clientY || evt.pageY);
 });
 
-// Click outside to dismiss pinned card
 document.addEventListener('click', (e) => {
   if (cardPinned && !card.contains(e.target) && !chartEl.contains(e.target)) {
     hideCard();
@@ -427,10 +591,12 @@ properties.sort((a, b) => b.score - a.score).forEach(p => {
   const hoodColor = hoodColors[p.hood] || '#999';
   const linkDomain = p.url ? new URL(p.url).hostname.replace('www.', '') : '';
   const linkHtml = p.url ? `<a class="listing" href="${p.url}" target="_blank">${linkDomain}</a>` : '<span style="color:#ccc">None</span>';
+  const tierBadge = p.tier ? `<span class="tier-badge" style="background:${tierColor(p.tier)}">${p.tier}</span>` : '';
   const tr = document.createElement('tr');
   tr.innerHTML = `
     <td><span class="score-pill ${scoreClass}">${p.score}</span></td>
-    <td><strong>${p.name}</strong><br><span style="color:#888;font-size:11px">${p.desc}</span></td>
+    <td>${tierBadge}</td>
+    <td><strong>${p.name}</strong><br><span style="color:#999;font-size:11px">${p.desc}</span></td>
     <td><span class="hood-pill" style="background:${hoodColor}">${p.hood}</span></td>
     <td>${p.rent ? '$' + p.rent.toLocaleString() : 'Contact'}</td>
     <td>${p.beds}</td>
