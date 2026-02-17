@@ -44,7 +44,7 @@
 
 <div id="header">
   <h1>Candidate Properties — Rent vs Square Footage</h1>
-  <p>Bubble size = Howie Score. Color = price per sqft. Click any point for details. Listing links in table below.</p>
+  <p>Bubble size = Overall Score. Color = price per sqft. Click any point for details. Listing links in table below.</p>
 </div>
 
 <div id="chart"></div>
@@ -61,26 +61,30 @@
 
 <script>
 const allProperties = [
-  { name: "The Perrenoud #402", address: "1699 N Downing St #402", rent: 2375, sqft: 1665, beds: 2, score: 94, hood: "Capitol Hill", desc: "1901 penthouse — birdcage elevator, stained glass, 20ft ceilings", url: "https://www.apartments.com/1699-n-downing-st-denver-co/h5xcer2/" },
+  { name: "The Perrenoud #402", address: "1699 N Downing St #402", rent: 2375, sqft: 1665, beds: 2, score: 94, hood: "Capitol Hill", desc: "1901 penthouse — birdcage elevator, stained glass, 20ft ceilings, pool", url: "https://www.zillow.com/homedetails/1699-N-Downing-St-Denver-CO-80218/247392796_zpid/" },
   { name: "1541 E 25th Ave", address: "1541 E 25th Ave", rent: 3290, sqft: 3169, beds: 4, score: 93, hood: "Five Points", desc: "Contemporary Whittier home. Wraparound deck, hot tub, firepit. Adjacent to Ben & Caitlin", url: "https://www.apartments.com/contemporary-whittier-home-with-wraparound-deck-denver-co/gtek7gz/" },
-  { name: "3033 Welton St", address: "3033 Welton St", rent: 2995, sqft: 1554, beds: 3, score: 90, hood: "Five Points", desc: "~1884 Five Points. Exposed brick, 2 fireplaces, fire pit yard", url: "https://www.rent.com/r/3033-welton-st-denver-co-lv2660882333" },
-  { name: "2900 Wyandot St 101", address: "2900 Wyandot St, Unit 101", rent: 4300, sqft: 2002, beds: 3, score: 85, hood: "Highland", desc: "1925 Sunnyside/Highland. 3bd/2ba. No active listing — verify availability", url: "https://www.zillow.com/homedetails/2900-Wyandot-St-UNIT-101-Denver-CO-80211/82593755_zpid/" },
-  { name: "2934 Glenarm Pl", address: "2934 Glenarm Pl", rent: 2550, sqft: 1129, beds: 3, score: 82, hood: "Five Points", desc: "Classic Denver home. Hardwood floors, granite, mudroom, backyard. Walk Score 93", url: "https://www.apartments.com/2934-glenarm-pl-denver-co/6pxr4ev/" },
-  { name: "3222 W Hayward Pl", address: "3222 W Hayward Pl", rent: 2750, sqft: 1332, beds: 2, score: 80, hood: "Highland", desc: "1890 Victorian cottage. Hot tub, skylights, 2-car garage. Furnished", url: "https://www.apartments.com/3222-w-hayward-pl-denver-co/p68ryht/" },
+  { name: "3033 Welton St", address: "3033 Welton St", rent: 2995, sqft: 1554, beds: 3, score: 90, hood: "Five Points", desc: "~1884 Five Points. Exposed brick, 2 fireplaces, fire pit yard, 2-car garage", url: "https://www.rent.com/r/3033-welton-st-denver-co-lv2660882333" },
+  { name: "2900 Wyandot St 101", address: "2900 Wyandot St, Unit 101", rent: 4300, sqft: 2002, beds: 3, score: 85, hood: "Highland", desc: "1925 Sunnyside/Highland. 3bd/3ba. No active listing — verify availability", url: "https://www.zillow.com/homedetails/2900-Wyandot-St-UNIT-101-Denver-CO-80211/82593755_zpid/" },
+  { name: "3222 W Hayward Pl", address: "3222 W Hayward Pl", rent: 2750, sqft: 1332, beds: 2, score: 80, hood: "Highland", desc: "1890 Victorian cottage. Hot tub, skylights, 2-car garage. Furnished", url: "https://www.zillow.com/homedetails/3222-W-Hayward-Pl-Denver-CO-80211/13311361_zpid/" },
   { name: "3101 Meade St", address: "3101 Meade St", rent: 4250, sqft: 1823, beds: 3, score: 79, hood: "Highland", desc: "1905 Denver Square one block from Highland Square. Garage, yard", url: "https://hotpads.com/3101-meade-st-denver-co-80211-1kz8jv8/pad" },
-  { name: "575 N Ogden St", address: "575 N Ogden St", rent: 2650, sqft: 1350, beds: 3, score: 78, hood: "Capitol Hill", desc: "Craftsman bungalow — fireplace, honeybee hives, front porch", url: "https://www.rentable.co/denver-co/long-realty-and-property-management-3-bed-1-bath-single-family-in-the-heart-of-denver" },
-  { name: "2820 Champa St", address: "2820 Champa St", rent: 3950, sqft: 2629, beds: 5, score: 72, hood: "Five Points", desc: "1886 Five Points. Exposed brick, fireplace, 2629sqft. No active listing", url: "https://www.zillow.com/homedetails/2210-N-Marion-St-Denver-CO-80205/88905567_zpid/" },
   { name: "2605 N Elizabeth St", address: "2605 N Elizabeth St", rent: 3000, sqft: 1539, beds: 4, score: 72, hood: "Five Points", desc: "1929 Five Points. No active listing. Multi-unit building", url: "https://www.zillow.com/homedetails/2605-N-Elizabeth-St-Denver-CO-80205/129899120_zpid/" },
+  { name: "2820 Champa St", address: "2820 Champa St", rent: 3950, sqft: 2629, beds: 5, score: 72, hood: "Five Points", desc: "1886 Five Points. Exposed brick, fireplace, 2629sqft. No active listing", url: "https://www.zillow.com/homedetails/2210-N-Marion-St-Denver-CO-80205/88905567_zpid/" },
+  { name: "941 S Clarkson St", address: "941 S Clarkson St", rent: 3850, sqft: 1250, beds: 2, score: 65, hood: "Washington Park", desc: "1905 Wash Park. Hardwood floors, gated parking, garage. Listing may be expired", url: "https://www.zillow.com/homedetails/941-S-Clarkson-St-Denver-CO-80209/13356582_zpid/" },
+  { name: "2210 N Marion St", address: "2210 N Marion St", rent: 4250, sqft: 2541, beds: 4, score: 65, hood: "Five Points", desc: "Five Points rental. 4bd, 2541sqft. Verify address — Pat said 'Merion'", url: "https://www.zillow.com/homedetails/2210-N-Marion-St-Denver-CO-80205/88905567_zpid/" },
   { name: "817 29th St", address: "817 29th St", rent: 6000, sqft: 2822, beds: 3, score: 65, hood: "Five Points", desc: "Five Points rental. 3bd, 2822sqft. Over budget", url: "https://www.zillow.com/homedetails/817-29th-St-Denver-CO-80205/444549553_zpid/" },
   { name: "3720 Lowell Blvd", address: "3720 Lowell Blvd", rent: 3600, sqft: 1210, beds: 3, score: 65, hood: "Highland", desc: "1890 Victorian in Highland. Front porch, cats + dogs OK", url: "https://www.apartments.com/enchanting-west-highland-victorian-home-by-denver-co/meczdyj/" },
   { name: "267 S Franklin St", address: "267 S Franklin St", rent: 3080, sqft: 1211, beds: 2, score: 65, hood: "Washington Park", desc: "1891 Wash Park Historic District. Stained glass, original woodwork", url: "https://www.apartments.com/267-s-franklin-st-denver-co/mhz484k/" },
+  { name: "2757 Champa St", address: "2757 Champa St", rent: null, sqft: 1600, beds: 2, score: 65, hood: "Five Points", desc: "1890 San Rafael Historic District. Vaulted ceilings, skylight, exposed brick. Contact for price", url: "https://www.rent.com/r/2757-champa-st-denver-co-lv2613431675" },
   { name: "826 25th St", address: "826 25th St", rent: 2900, sqft: 1458, beds: 2, score: 62, hood: "Five Points", desc: "Five Points modern house. Attached garage, in-unit W/D. No charm", url: "https://www.apartments.com/826-25th-st-denver-co/pzqvt6t/" },
   { name: "920 E 24th Ave", address: "920 E 24th Ave", rent: 4800, sqft: 1829, beds: 3, score: 62, hood: "Five Points", desc: "1890 Victorian conversion. Near budget ceiling, above Rent Zestimate", url: "https://www.zillow.com/homedetails/920-E-24th-Ave-Denver-CO-80205/109688098_zpid/" },
   { name: "3048 California St", address: "3048 California St", rent: 2500, sqft: 966, beds: 2, score: 60, hood: "Five Points", desc: "~1885 Curtis Park. Exposed brick, 4 parking spots, in-unit W/D", url: "https://www.apartments.com/3048-california-st-denver-co/34gwm3g/" },
+  { name: "1243 S Lincoln St", address: "1243 S Lincoln St", rent: 2995, sqft: null, beds: 4, score: 60, hood: "Platt Park", desc: "1925 Platt Park. Price dropped from $3,395. Near RIGAR gym", url: "" },
+  { name: "787 Corona St", address: "787 Corona St", rent: 1700, sqft: null, beds: 2, score: 58, hood: "Capitol Hill", desc: "1925 Cap Hill brick. Private balcony, patio, in-unit W/D. Budget pick", url: "https://cornerstoneapartments.com/our-buildings/787-corona/" },
+  { name: "2100 Humboldt St", address: "2100 Humboldt St", rent: 2250, sqft: null, beds: 2, score: 55, hood: "Five Points", desc: "Cole Victorian near Ben & Caitlin. 2bd/2ba. Pets OK, W/D", url: "https://www.apartments.com/2100-humboldt-st-denver-co/mvbw1cl/" },
   { name: "421 S Lincoln St", address: "421 S Lincoln St", rent: 2795, sqft: 2778, beds: 5, score: 45, hood: "Washington Park", desc: "1888 original Denver home. 5bd, 2778sqft. Huge value if solid", url: "https://hotpads.com/421-s-lincoln-st-denver-co-80209-1my060y/pad" },
+  { name: "2358 N Ogden St B", address: "2358 N Ogden St, Unit B", rent: 3625, sqft: 1216, beds: 3, score: 30, hood: "Five Points", desc: "1890 Victorian. For sale but available as mid-term rental at $3,625/mo", url: "https://www.zillow.com/homedetails/2358-N-Ogden-St-B-Denver-CO-80205/61433505_zpid/" },
   { name: "1688 Quitman St", address: "1688 Quitman St", rent: 4020, sqft: 1506, beds: 2, score: 20, hood: "Sloan Lake", desc: "Sloan's Lake area. Weaker neighborhood fit", url: "https://www.zillow.com/homedetails/1688-Quitman-St-ID1013132P-Denver-CO-80204/459288643_zpid/" },
   { name: "2431 Stout St", address: "2431 Stout St", rent: 6495, sqft: 2187, beds: 2, score: 10, hood: "Five Points", desc: "Over budget. Furnished, smart home. Built 2005, not historic", url: "https://www.zillow.com/homedetails/2431-Stout-St-Denver-CO-80205/82257191_zpid/" },
-  { name: "1343 N High St 8", address: "1343 N High St, Apt 8", rent: 1800, sqft: 737, beds: 2, score: 10, hood: "Cheesman Park", desc: "Budget option. 737sqft — very small. No cats. No charm", url: "https://rental.turbotenant.com/p/1343-n-high-street-denver-co-unit-8/158753" },
   { name: "1770 S Washington St", address: "1770 S Washington St", rent: 7535, sqft: 3480, beds: 5, score: 8, hood: "Platt Park", desc: "Way over budget. Built 2017. No cats. Wrong on every priority", url: "https://www.zillow.com/homedetails/1770-S-Washington-St-Denver-CO-80210/13369602_zpid/" },
 ];
 
@@ -96,7 +100,7 @@ const hoverText = properties.map(p =>
   `<b>${p.name}</b><br>` +
   `${p.address}<br>` +
   `<b>$${p.rent.toLocaleString()}/mo</b> · ${p.sqft.toLocaleString()} sqft · ${p.beds} bed<br>` +
-  `$${(p.rent / p.sqft).toFixed(2)}/sqft · Howie Score: ${p.score}<br>` +
+  `$${(p.rent / p.sqft).toFixed(2)}/sqft · Overall Score: ${p.score}<br>` +
   `<i>${p.desc}</i>`
 );
 
@@ -155,7 +159,7 @@ allProperties.sort((a, b) => b.score - a.score).forEach(p => {
   tr.innerHTML = `
     <td><span class="score-pill ${scoreClass}">${p.score}</span></td>
     <td><strong>${p.name}</strong><br><span style="color:#888;font-size:11px">${p.hood}</span></td>
-    <td>${p.rent ? '$' + p.rent.toLocaleString() : '—'}</td>
+    <td>${p.rent ? '$' + p.rent.toLocaleString() : 'Contact'}</td>
     <td>${p.sqft ? p.sqft.toLocaleString() : '—'}</td>
     <td class="ppsf">${ppsfVal}</td>
     <td>${p.beds}</td>
