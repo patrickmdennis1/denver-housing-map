@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Howie's Picks — Denver Housing Search</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f5f5f0;
+    color: #1a1a1a;
+    min-height: 100vh;
+  }
+  #header {
+    padding: 28px 36px 20px;
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    color: #fff;
+    border-bottom: 3px solid #e8c547;
+  }
+  #header h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+  #header p { font-size: 13px; color: rgba(255,255,255,0.6); margin-top: 6px; }
+  #nav {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  #nav a {
+    display: inline-block;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.15s ease;
+  }
+  #nav a.active {
+    background: #e8c547;
+    color: #1a1a1a;
+  }
+  #nav a:not(.active) {
+    background: rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.7);
+  }
+  #nav a:not(.active):hover {
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+  }
+
+  .container { max-width: 800px; margin: 0 auto; padding: 24px; }
+
+  /* Scenario section */
+  .scenario-section {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .scenario-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 4px;
+  }
+  .scenario-subtitle {
+    font-size: 12px;
+    color: #999;
+    margin-bottom: 14px;
+  }
+  .chip-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 24px;
+    font-size: 13px;
+    font-weight: 500;
+    border: 2px solid #e0e0dc;
+    background: #fff;
+    color: #555;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+  }
+  .chip:hover {
+    border-color: #ccc;
+    background: #fafaf8;
+  }
+  .chip.selected {
+    border-color: #1a1a1a;
+    background: #1a1a1a;
+    color: #fff;
+  }
+  .chip .chip-icon {
+    font-size: 15px;
+    line-height: 1;
+  }
+
+  /* Reset button */
+  .reset-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .reset-btn {
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    border: none;
+    background: #f0f0ec;
+    color: #888;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .reset-btn:hover {
+    background: #e0e0dc;
+    color: #555;
+  }
+  .active-count {
+    font-size: 12px;
+    color: #aaa;
+    font-weight: 500;
+  }
+
+  /* Results */
+  #results-header {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 4px;
+    color: #1a1a1a;
+  }
+  #results-subtitle {
+    font-size: 13px;
+    color: #999;
+    margin-bottom: 20px;
+  }
+
+  .pick-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    margin-bottom: 12px;
+    overflow: hidden;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .pick-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.08);
+  }
+  .pick-card-inner {
+    display: flex;
+    gap: 16px;
+    padding: 18px 20px;
+    align-items: flex-start;
+  }
+  .pick-rank {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 800;
+    color: #fff;
+  }
+  .pick-rank-1 { background: #e8c547; color: #1a1a1a; }
+  .pick-rank-2 { background: #aaa; }
+  .pick-rank-3 { background: #cd7f32; }
+  .pick-rank-4, .pick-rank-5 { background: #ddd; color: #666; }
+  .pick-body { flex: 1; min-width: 0; }
+  .pick-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .pick-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1a1a1a;
+  }
+  .pick-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 3px;
+  }
+  .pick-hood {
+    font-size: 11px;
+    color: #888;
+  }
+  .pick-tier {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 5px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .pick-score {
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 800;
+    color: #fff;
+  }
+  .pick-stats {
+    display: flex;
+    gap: 16px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .pick-stat {
+    font-size: 12px;
+    color: #666;
+  }
+  .pick-stat strong {
+    color: #1a1a1a;
+    font-weight: 700;
+  }
+  .pick-reason {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #f4f4f2;
+    font-size: 12px;
+    color: #888;
+    line-height: 1.4;
+  }
+  .pick-reason strong {
+    color: #666;
+    font-weight: 600;
+  }
+  .pick-alert {
+    display: inline-block;
+    padding: 1px 6px;
+    background: #FFF8E1;
+    color: #F57F17;
+    border: 1px solid #FFECB3;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .pick-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 8px;
+    padding: 6px 14px;
+    background: #1a1a1a;
+    color: #fff;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.15s;
+  }
+  .pick-link:hover { background: #333; }
+
+  .no-results {
+    text-align: center;
+    padding: 40px 20px;
+    color: #aaa;
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>Howie's Picks</h1>
+  <p>Tell me what matters to you. I'll surface the best options.</p>
+  <div id="nav">
+    <a href="properties.html">Rent vs Sqft</a>
+    <a href="score-vs-rent.html">Score vs Rent</a>
+    <a class="active" href="picks.html">Howie's Picks</a>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="scenario-section">
+    <div class="scenario-title">What matters most?</div>
+    <div class="scenario-subtitle">Select one or more preferences. Results update instantly.</div>
+    <div class="chip-group" id="chips">
+      <div class="chip" data-scenario="best-value" onclick="toggle(this)">
+        <span class="chip-icon">$</span> Best value for my dollar
+      </div>
+      <div class="chip" data-scenario="spend-more" onclick="toggle(this)">
+        <span class="chip-icon">+</span> Willing to spend more for quality
+      </div>
+      <div class="chip" data-scenario="need-pets" onclick="toggle(this)">
+        <span class="chip-icon">P</span> I need pet-friendly
+      </div>
+      <div class="chip" data-scenario="skip-pets" onclick="toggle(this)">
+        <span class="chip-icon">X</span> I can give up pets
+      </div>
+      <div class="chip" data-scenario="more-space" onclick="toggle(this)">
+        <span class="chip-icon">S</span> I want more space
+      </div>
+      <div class="chip" data-scenario="three-bed" onclick="toggle(this)">
+        <span class="chip-icon">3</span> Need 3+ bedrooms
+      </div>
+      <div class="chip" data-scenario="character" onclick="toggle(this)">
+        <span class="chip-icon">H</span> Historic character is everything
+      </div>
+      <div class="chip" data-scenario="near-friends" onclick="toggle(this)">
+        <span class="chip-icon">F</span> Close to Ben & Caitlin
+      </div>
+      <div class="chip" data-scenario="sure-thing" onclick="toggle(this)">
+        <span class="chip-icon">!</span> No deal-breakers, give me a sure thing
+      </div>
+    </div>
+  </div>
+
+  <div class="reset-bar">
+    <span class="active-count" id="active-count">No filters active — showing all properties by score</span>
+    <button class="reset-btn" onclick="resetAll()">Reset All</button>
+  </div>
+
+  <div id="results-header">Top Picks</div>
+  <div id="results-subtitle">Ranked by overall desirability</div>
+  <div id="results"></div>
+</div>
+
+<script>
+const properties = [
+  { name: "1623 Race St", hood: "City Park West", rent: 3444, sqft: 1887, beds: 3, score: 86, tier: "A", desc: "1883 dark wood moldings, fireplace, clawfoot tub, French windows. Walk Score 93.", pets: "cats+small dogs", url: "https://www.zillow.com/homedetails/1623-Race-St-Denver-CO-80206/13321719_zpid/", headsUp: null, charm: "high", nearFriends: false },
+  { name: "600 Fillmore St", hood: "Congress Park", rent: 3295, sqft: 1906, beds: 2, score: 80, tier: "A", desc: "Tudor brick, fireplace, fenced yard.", pets: "yes", url: "https://www.zillow.com/homedetails/600-Fillmore-St-Denver-CO-80206/13328212_zpid/", headsUp: null, charm: "medium", nearFriends: false },
+  { name: "2631 N Humboldt St", hood: "Five Points", rent: 3197, sqft: 1760, beds: 3, score: 82, tier: "A", desc: "Victorian, dramatic staircase, fireplace, French doors, huge yard.", pets: "no", url: "https://www.zillow.com/homedetails/2631-N-Humboldt-St-Denver-CO-80205/13306745_zpid/", headsUp: "No pets allowed, 6-month lease only", charm: "high", nearFriends: true },
+  { name: "641 Steele St", hood: "Congress Park", rent: 4000, sqft: 3111, beds: 3, score: 84, tier: "B", desc: "Tudor bungalow, 7th Ave Historic. Custom built-ins, 2 fireplaces, garden suite.", pets: "dogs", url: "https://www.zillow.com/homedetails/641-Steele-St-Denver-CO-80206/13327700_zpid/", headsUp: null, charm: "high", nearFriends: false },
+  { name: "2820 Champa St", hood: "Five Points", rent: 3950, sqft: 2629, beds: 4, score: 82, tier: "B", desc: "1886 Victorian, exceptional character.", pets: "no", url: "https://www.zillow.com/homedetails/2820-Champa-St-Denver-CO-80205/13307550_zpid/", headsUp: "No pets allowed, ADU construction on-site", charm: "high", nearFriends: true },
+  { name: "2746 N Williams St", hood: "Five Points", rent: 2700, sqft: 1045, beds: 2, score: 79, tier: "B", desc: "1895 Whittier. Exposed brick in 3 rooms, pergola yard, dogs OK. 4 blocks from Ben & Caitlin.", pets: "dogs", url: "https://www.zillow.com/homedetails/2746-N-Williams-St-Denver-CO-80205/13306659_zpid/", headsUp: null, charm: "high", nearFriends: true },
+  { name: "3033 Welton St", hood: "Five Points", rent: 2995, sqft: 1554, beds: 3, score: 78, tier: "B", desc: "1884 Five Points. Extensive exposed brick, fire pit patio, Victorian exterior.", pets: "unknown", url: "https://www.rent.com/r/3033-welton-st-denver-co-lv2660882333", headsUp: null, charm: "high", nearFriends: true },
+  { name: "3048 California St", hood: "Five Points", rent: 2500, sqft: 966, beds: 2, score: 74, tier: "C", desc: "1884 Victorian, exposed brick, iron fence.", pets: "unknown", url: "https://www.apartments.com/3048-california-st-denver-co/34gwm3g/", headsUp: null, charm: "medium", nearFriends: true },
+  { name: "2900 Wyandot St 101", hood: "Highland", rent: 4300, sqft: 2002, beds: 3, score: 76, tier: "D", desc: "LoHi industrial-modern. Soaring ceilings, Walk Score 95.", pets: "unknown", url: "https://www.zillow.com/homedetails/2900-Wyandot-St-UNIT-101-Denver-CO-80211/82593755_zpid/", headsUp: null, charm: "low", nearFriends: false },
+  { name: "267 S Franklin St", hood: "Washington Park", rent: 3080, sqft: 1211, beds: 2, score: 72, tier: "C", desc: "1907 Wash Park Historic District. Stained glass, original woodwork.", pets: "unknown", url: "https://www.apartments.com/267-s-franklin-st-denver-co/mhz484k/", headsUp: "Check Back Soon availability", charm: "high", nearFriends: false },
+  { name: "1346 S Pennsylvania", hood: "Platt Park", rent: 3450, sqft: 1500, beds: 3, score: 71, tier: "C", desc: "1906 brick bungalow, arched doorways.", pets: "unknown", url: "https://www.zillow.com/homedetails/1346-S-Pennsylvania-St-Denver-CO-80210/13368691_zpid/", headsUp: null, charm: "medium", nearFriends: false },
+  { name: "2605 N Elizabeth St", hood: "Five Points", rent: 3000, sqft: 1539, beds: 3, score: 70, tier: "C", desc: "Exposed brick, Skyland. Re-listed.", pets: "unknown", url: "https://www.zillow.com/homedetails/2605-N-Elizabeth-St-Denver-CO-80205/129899120_zpid/", headsUp: null, charm: "medium", nearFriends: false },
+  { name: "2229 N Lafayette", hood: "Five Points", rent: 2350, sqft: 864, beds: 2, score: 70, tier: "C", desc: "Lease takeover Mar 1, great location, modern reno, no charm.", pets: "unknown", url: "https://www.zillow.com/homedetails/2229-N-Lafayette-St-Denver-CO-80205/63492556_zpid/", headsUp: null, charm: "low", nearFriends: true },
+  { name: "The Perrenoud #402", hood: "Capitol Hill", rent: 2395, sqft: 1665, beds: 2, score: 68, tier: "C", desc: "1901 building extraordinary, unit modernized.", pets: "no", url: "https://www.realtor.com/rentals/details/1699-N-Downing-St-Apt-402_Denver_CO_80218_M24561-18651", headsUp: "No pets allowed (HOA restriction)", charm: "high", nearFriends: false },
+  { name: "1766 N Emerson St", hood: "Capitol Hill", rent: 2300, sqft: 1450, beds: 3, score: 65, tier: "C", desc: "1908 Victorian. Fireplace, arched windows.", pets: "cats", url: "https://www.zillow.com/homedetails/1766-N-Emerson-St-Denver-CO-80218/442693318_zpid/", headsUp: null, charm: "medium", nearFriends: false },
+  { name: "920 E 24th Ave", hood: "Five Points", rent: 4775, sqft: 2000, beds: 3, score: 72, tier: "D", desc: "1890 Queen Anne, San Rafael Historic.", pets: "no", url: "https://www.zillow.com/homedetails/920-E-24th-Ave-Denver-CO-80205/109688098_zpid/", headsUp: "No pets allowed, priced high at $4,775", charm: "high", nearFriends: true },
+  { name: "817 29th St", hood: "Five Points", rent: 6000, sqft: 2822, beds: 3, score: 72, tier: "D", desc: "1894 Denver Square, original fireplace. 84 days = negotiation leverage.", pets: "unknown", url: "https://www.zillow.com/homedetails/817-29th-St-Denver-CO-80205/444549553_zpid/", headsUp: null, charm: "high", nearFriends: true },
+  { name: "3336 N Lafayette", hood: "Five Points", rent: 3690, sqft: 2056, beds: 3, score: 55, tier: "F", desc: "1888 Victorian. Bungalow managed, 31% above Zestimate.", pets: "unknown", url: "https://www.zillow.com/homedetails/3336-N-Lafayette-St-Denver-CO-80205/13305808_zpid/", headsUp: null, charm: "medium", nearFriends: false },
+  { name: "2358 N Ogden St B", hood: "Five Points", rent: 3625, sqft: 1216, beds: 3, score: 58, tier: "F", desc: "1890 Five Points.", pets: "no", url: "https://www.zillow.com/homedetails/2358-N-Ogden-St-B-Denver-CO-80205/61433505_zpid/", headsUp: "Furnished corporate rental, no pets allowed", charm: "medium", nearFriends: false },
+  { name: "1770 S Washington", hood: "Platt Park", rent: 7535, sqft: 3480, beds: 5, score: 58, tier: "F", desc: "Architect Carlos Alvarez.", pets: "no cats", url: "https://www.zillow.com/homedetails/1770-S-Washington-St-Denver-CO-80210/13369602_zpid/", headsUp: "No cats, $7,535/mo, 4-month lease only", charm: "medium", nearFriends: false },
+  { name: "3720 Lowell Blvd", hood: "Highland", rent: 3600, sqft: 1210, beds: 3, score: 50, tier: "F", desc: "1890 Victorian Highland.", pets: "unknown", url: "https://www.apartments.com/enchanting-west-highland-victorian-home-by-denver-co/meczdyj/", headsUp: "Bungalow co-living arrangement (shared spaces)", charm: "medium", nearFriends: false },
+  { name: "1541 E 25th Ave", hood: "Five Points", rent: 3290, sqft: 3169, beds: 4, score: 45, tier: "D", desc: "Impressive Whittier property.", pets: "unknown", url: "https://www.zillow.com/homedetails/1541-E-25th-Ave-Denver-CO-80205/88905959_zpid/", headsUp: "Bungalow co-living arrangement (shared spaces)", charm: "medium", nearFriends: true },
+  { name: "1688 Quitman St", hood: "Sloan Lake", rent: 4020, sqft: 1506, beds: 2, score: 35, tier: "F", desc: "2017 modern, zero character.", pets: "unknown", url: "https://www.zillow.com/homedetails/1688-Quitman-St-ID1013132P-Denver-CO-80204/459288643_zpid/", headsUp: "Furnished corporate rental", charm: "low", nearFriends: false },
+];
+
+const tierColors = { A: '#2E7D32', B: '#1565C0', C: '#F9A825', D: '#E65100', F: '#C62828' };
+const tierLabels = { A: 'Best Buy', B: 'Strong Pick', C: 'Solid Option', D: 'Stretch', F: 'Poor Value' };
+
+function scoreColor(s) {
+  if (s >= 80) return '#2E7D32';
+  if (s >= 70) return '#66BB6A';
+  if (s >= 55) return '#FDD835';
+  return '#FF9800';
+}
+
+let activeScenarios = new Set();
+
+function toggle(el) {
+  const scenario = el.dataset.scenario;
+
+  // Mutual exclusions
+  const conflicts = {
+    'need-pets': 'skip-pets',
+    'skip-pets': 'need-pets',
+    'best-value': 'spend-more',
+    'spend-more': 'best-value',
+  };
+
+  if (el.classList.contains('selected')) {
+    el.classList.remove('selected');
+    activeScenarios.delete(scenario);
+  } else {
+    el.classList.add('selected');
+    activeScenarios.add(scenario);
+    // Remove conflicting
+    if (conflicts[scenario]) {
+      activeScenarios.delete(conflicts[scenario]);
+      document.querySelector(`[data-scenario="${conflicts[scenario]}"]`).classList.remove('selected');
+    }
+  }
+  updateResults();
+}
+
+function resetAll() {
+  activeScenarios.clear();
+  document.querySelectorAll('.chip.selected').forEach(c => c.classList.remove('selected'));
+  updateResults();
+}
+
+function updateResults() {
+  const active = activeScenarios;
+  const count = active.size;
+  const countEl = document.getElementById('active-count');
+  countEl.textContent = count === 0 ? 'No filters active \u2014 showing all properties by score' : count + ' filter' + (count > 1 ? 's' : '') + ' active';
+
+  let candidates = properties.map(p => ({...p, adjustedScore: p.score, reasons: []}));
+
+  // Apply filters and scoring adjustments
+  if (active.has('need-pets')) {
+    candidates = candidates.filter(p => ['yes', 'cats+small dogs', 'dogs', 'cats'].includes(p.pets));
+    candidates.forEach(p => p.reasons.push('Pet-friendly'));
+  }
+
+  if (active.has('skip-pets')) {
+    // Boost no-pet properties that have high scores (unlocked value)
+    candidates.forEach(p => {
+      if (p.pets === 'no' && p.score >= 65) {
+        p.adjustedScore += 8;
+        p.reasons.push('Unlocked by skipping pets');
+      }
+    });
+  }
+
+  if (active.has('three-bed')) {
+    candidates = candidates.filter(p => p.beds >= 3);
+    candidates.forEach(p => p.reasons.push(p.beds + ' bedrooms'));
+  }
+
+  if (active.has('best-value')) {
+    candidates.forEach(p => {
+      const valueRatio = p.score / (p.rent / 1000);
+      p.adjustedScore = p.score * 0.4 + valueRatio * 12;
+      if (p.tier === 'A') p.adjustedScore += 10;
+      if (p.tier === 'B') p.adjustedScore += 5;
+      p.reasons.push('$' + (p.rent / p.sqft).toFixed(2) + '/sqft');
+    });
+  }
+
+  if (active.has('spend-more')) {
+    candidates.forEach(p => {
+      p.adjustedScore = p.score * 1.2;
+      if (p.charm === 'high') p.adjustedScore += 6;
+      if (p.sqft >= 2000) p.adjustedScore += 4;
+      p.reasons.push('Quality-first pick');
+    });
+  }
+
+  if (active.has('more-space')) {
+    candidates.forEach(p => {
+      const spaceScore = Math.min(p.sqft / 50, 60);
+      p.adjustedScore = p.score * 0.5 + spaceScore;
+      p.reasons.push(p.sqft.toLocaleString() + ' sqft');
+    });
+  }
+
+  if (active.has('character')) {
+    candidates.forEach(p => {
+      if (p.charm === 'high') { p.adjustedScore += 15; p.reasons.push('High character'); }
+      else if (p.charm === 'medium') { p.adjustedScore += 3; }
+      else { p.adjustedScore -= 10; }
+    });
+  }
+
+  if (active.has('near-friends')) {
+    candidates = candidates.filter(p => p.nearFriends);
+    candidates.forEach(p => p.reasons.push('Near Ben & Caitlin'));
+  }
+
+  if (active.has('sure-thing')) {
+    candidates = candidates.filter(p => !p.headsUp && p.tier !== 'F' && p.tier !== 'D');
+    candidates.forEach(p => p.reasons.push('No deal-breakers'));
+  }
+
+  // Sort and take top 5
+  candidates.sort((a, b) => b.adjustedScore - a.adjustedScore);
+  const top = candidates.slice(0, 5);
+
+  renderResults(top, count);
+}
+
+function renderResults(picks, filterCount) {
+  const container = document.getElementById('results');
+  const headerEl = document.getElementById('results-header');
+  const subtitleEl = document.getElementById('results-subtitle');
+
+  if (picks.length === 0) {
+    headerEl.textContent = 'No Matches';
+    subtitleEl.textContent = 'Try removing some filters to see more options.';
+    container.innerHTML = '<div class="no-results">No properties match all your preferences. Try relaxing a filter or two.</div>';
+    return;
+  }
+
+  if (filterCount === 0) {
+    headerEl.textContent = 'Top Picks';
+    subtitleEl.textContent = 'Ranked by overall desirability score';
+  } else {
+    headerEl.textContent = "Howie's Picks for You";
+    subtitleEl.textContent = 'Personalized based on your preferences';
+  }
+
+  container.innerHTML = picks.map((p, i) => {
+    const sc = scoreColor(p.score);
+    const tc = tierColors[p.tier] || '#999';
+    const ppsf = '$' + (p.rent / p.sqft).toFixed(2);
+    const rankClass = 'pick-rank-' + (i + 1);
+
+    let reasonHtml = '';
+    if (p.reasons.length > 0) {
+      reasonHtml = `<div class="pick-reason"><strong>Why this pick:</strong> ${p.reasons.join(' \u00B7 ')}</div>`;
+    }
+
+    let alertHtml = '';
+    if (p.headsUp) {
+      alertHtml = `<div style="margin-top:6px"><span class="pick-alert">HEADS UP</span> <span style="font-size:11px;color:#999">${p.headsUp}</span></div>`;
+    }
+
+    return `<div class="pick-card">
+      <div class="pick-card-inner">
+        <div class="pick-rank ${rankClass}">${i + 1}</div>
+        <div class="pick-body">
+          <div class="pick-top">
+            <div>
+              <div class="pick-name">${p.name}</div>
+              <div class="pick-meta">
+                <span class="pick-hood">${p.hood}</span>
+                <span class="pick-tier" style="background:${tc}">${p.tier}</span>
+              </div>
+            </div>
+            <div class="pick-score" style="background:${sc}">${p.score}</div>
+          </div>
+          <div class="pick-stats">
+            <div class="pick-stat"><strong>$${p.rent.toLocaleString()}</strong>/mo</div>
+            <div class="pick-stat"><strong>${p.sqft.toLocaleString()}</strong> sqft</div>
+            <div class="pick-stat"><strong>${p.beds}</strong> bed</div>
+            <div class="pick-stat"><strong>${ppsf}</strong>/sqft</div>
+          </div>
+          <div style="margin-top:6px;font-size:12px;color:#888;font-style:italic">${p.desc}</div>
+          ${alertHtml}
+          ${reasonHtml}
+          <a class="pick-link" href="${p.url}" target="_blank" rel="noopener noreferrer">View Listing \u2192</a>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Initial render
+updateResults();
+</script>
+</body>
+</html>
