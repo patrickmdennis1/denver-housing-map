@@ -1611,7 +1611,7 @@ function buildScoreRentChart() {
     textfont: { size: 9, color: '#888', family: 'Inter' },
     hoverinfo: 'none',
     marker: {
-      size: props.map(p => Math.max(p.howieScore * 0.6, 12)),
+      size: 16,
       color: props.map(p => (p.rent && p.sqft) ? Math.round(p.rent / p.sqft * 100) / 100 : 2.0),
       colorscale: [[0,'#2E7D32'],[0.35,'#66BB6A'],[0.5,'#FDD835'],[0.7,'#FF9800'],[1,'#D32F2F']],
       colorbar: { title: { text: '$/sqft', font: { size: 11, family: 'Inter' } }, thickness: 14, len: 0.4, tickfont: { size: 10 }, tickprefix: '$', outlinewidth: 0 },
