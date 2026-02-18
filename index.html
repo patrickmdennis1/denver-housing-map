@@ -1113,7 +1113,7 @@ function renderBrowse() {
         </div>
       </div>
       <div class="card-actions">
-        ${p.listingUrl ? `<a class="card-link" href="${p.listingUrl}" onclick="openListing(event, '${p.id}')">View Listing &rarr;</a>` : '<span></span>'}
+        ${p.listingUrl ? `<a class="card-link" href="${p.listingUrl}" onclick="goToListing('${p.listingUrl}',event)">View Listing &rarr;</a>` : '<span></span>'}
         <button class="more-btn" onclick="openDetail('${p.id}')">More &rarr;</button>
       </div>
     </div>`;
@@ -1146,11 +1146,15 @@ function rate(propId, field, value) {
   }
 }
 
-function openListing(e, propId) {
-  e.preventDefault();
-  const prop = AppState.properties.find(p => p.id === propId);
-  if (prop && prop.listingUrl) {
-    window.open(prop.listingUrl, '_blank');
+// Smart link: on mobile navigate in same tab (avoids blank tab + deep link double-open).
+// On desktop, open in new tab.
+function goToListing(url, e) {
+  if (e) e.preventDefault();
+  if (!url) return;
+  if (isMobile) {
+    window.location.href = url;
+  } else {
+    window.open(url, '_blank');
   }
 }
 
@@ -1322,7 +1326,7 @@ function initMap() {
         <div class="pp-stats"><div class="pp-stat"><div class="pp-stat-val">${rent}</div><div class="pp-stat-lbl">Rent</div></div><div class="pp-stat"><div class="pp-stat-val">${sqft}</div><div class="pp-stat-lbl">Sqft</div></div><div class="pp-stat"><div class="pp-stat-val">${p.beds || '\u2014'}</div><div class="pp-stat-lbl">Beds</div></div><div class="pp-stat"><div class="pp-stat-val">${ppsf}</div><div class="pp-stat-lbl">$/Sqft</div></div></div>
         <div class="pp-desc">${desc}${alertHtml ? '<br>' + alertHtml : ''}</div>
         ${ratings ? `<div class="pp-ratings">${ratings}</div>` : ''}
-        ${p.url ? `<a class="pp-link" href="${p.url}" target="_blank">View Listing &rarr;</a>` : ''}
+        ${p.url ? `<a class="pp-link" href="${p.url}" onclick="goToListing('${p.url}',event)">View Listing &rarr;</a>` : ''}
       </div>`;
       new maplibregl.Popup({ maxWidth: '320px', offset: 12, closeButton: true }).setLngLat(f.geometry.coordinates).setHTML(html).addTo(mapInstance);
       e.originalEvent.stopPropagation();
@@ -1506,7 +1510,7 @@ function buildRentSqftChart() {
     const sc = p.howieScore >= 80 ? 'background:#2E7D32' : p.howieScore >= 60 ? 'background:#66BB6A' : p.howieScore >= 40 ? 'background:#FDD835;color:#333' : 'background:#FF9800';
     const ppsfVal = (p.rent && p.sqft) ? '$' + (p.rent / p.sqft).toFixed(2) : '\u2014';
     const tr = document.createElement('tr');
-    if (p.listingUrl) { tr.classList.add('clickable-row'); tr.onclick = () => window.open(p.listingUrl, '_blank'); }
+    if (p.listingUrl) { tr.classList.add('clickable-row'); tr.onclick = () => goToListing(p.listingUrl); }
     tr.innerHTML = `<td><span class="score-pill" style="${sc}">${p.howieScore}</span></td><td>${p.valueTier ? `<span class="tier-badge" style="background:${TIER_COLORS[p.valueTier]}">${p.valueTier}</span>` : ''}</td><td><strong>${p.name}</strong><br><span style="color:#999;font-size:11px">${p.neighborhood}</span></td><td>$${(p.rent||0).toLocaleString()}</td><td>${(p.sqft||0).toLocaleString()}</td><td style="color:#888">${ppsfVal}</td><td>${p.beds}</td>`;
     tbody.appendChild(tr);
   });
@@ -1558,7 +1562,7 @@ function buildScoreRentChart() {
     const sc = p.howieScore >= 80 ? 'background:#2E7D32' : p.howieScore >= 60 ? 'background:#66BB6A' : p.howieScore >= 40 ? 'background:#FDD835;color:#333' : 'background:#FF9800';
     const hc = HOOD_COLORS[p.neighborhood] || '#999';
     const tr = document.createElement('tr');
-    if (p.listingUrl) { tr.classList.add('clickable-row'); tr.onclick = () => window.open(p.listingUrl, '_blank'); }
+    if (p.listingUrl) { tr.classList.add('clickable-row'); tr.onclick = () => goToListing(p.listingUrl); }
     tr.innerHTML = `<td><span class="score-pill" style="${sc}">${p.howieScore}</span></td><td>${p.valueTier ? `<span class="tier-badge" style="background:${TIER_COLORS[p.valueTier]}">${p.valueTier}</span>` : ''}</td><td><strong>${p.name}</strong></td><td><span style="display:inline-block;padding:2px 8px;border-radius:10px;color:#fff;font-size:11px;background:${hc}">${p.neighborhood}</span></td><td>$${(p.rent||0).toLocaleString()}</td><td>${p.beds}</td>`;
     tbody.appendChild(tr);
   });
@@ -1623,7 +1627,7 @@ function showMobileCard(p) {
       <div style="background:#fff;padding:10px;text-align:center"><div style="font-size:16px;font-weight:700">${ppsf}</div><div style="font-size:9px;color:#aaa;text-transform:uppercase;margin-top:1px">$/Sqft</div></div>
     </div>
     ${p.description ? `<p style="font-size:13px;color:#666;font-style:italic;line-height:1.5;margin-bottom:12px">${p.description}</p>` : ''}
-    ${p.listingUrl ? `<a class="dsheet-mapbtn" href="${p.listingUrl}" onclick="event.preventDefault();window.open('${p.listingUrl}','_blank')" style="display:block;text-align:center;text-decoration:none">View Listing &rarr;</a>` : ''}
+    ${p.listingUrl ? `<a class="dsheet-mapbtn" href="${p.listingUrl}" onclick="goToListing('${p.listingUrl}',event)" style="display:block;text-align:center;text-decoration:none">View Listing &rarr;</a>` : ''}
   `;
 
   overlay.classList.remove('hidden');
@@ -1640,7 +1644,7 @@ function showHoverCard(p, card, mx, my) {
     <div class="hc-header"><div><div class="hc-title">${p.name}</div><div class="hc-hood">${p.neighborhood} ${p.valueTier ? `<span class="tier-badge" style="background:${tc};margin-left:4px">${p.valueTier}</span>` : ''}</div></div><div class="hc-score" style="background:${sc}">${p.howieScore}</div></div>
     <div class="hc-stats"><div class="hc-stat"><div class="hc-stat-val">$${(p.rent||0).toLocaleString()}</div><div class="hc-stat-lbl">Rent</div></div><div class="hc-stat"><div class="hc-stat-val">${(p.sqft||0).toLocaleString()}</div><div class="hc-stat-lbl">Sqft</div></div><div class="hc-stat"><div class="hc-stat-val">${p.beds}</div><div class="hc-stat-lbl">Beds</div></div><div class="hc-stat"><div class="hc-stat-val">${ppsf}</div><div class="hc-stat-lbl">$/Sqft</div></div></div>
     <div class="hc-desc">${p.description || ''}</div>
-    <div class="hc-actions">${p.listingUrl ? `<a class="hc-link" href="${p.listingUrl}" target="_blank">View Listing</a>` : ''}<button class="hc-dismiss" onclick="hideHoverCard()">Dismiss</button></div>`;
+    <div class="hc-actions">${p.listingUrl ? `<a class="hc-link" href="${p.listingUrl}" onclick="goToListing('${p.listingUrl}',event)">View Listing</a>` : ''}<button class="hc-dismiss" onclick="hideHoverCard()">Dismiss</button></div>`;
 
   let left = mx + 16, top = my - 20;
   if (left + 320 > window.innerWidth - 12) left = mx - 330;
@@ -1803,7 +1807,7 @@ function renderPickResults(picks, filterCount) {
         <div style="margin-top:6px;font-size:12px;color:#888;font-style:italic">${p.description}</div>
         ${p.headsUp ? `<div style="margin-top:4px"><span class="pick-alert">HEADS UP</span> <span style="font-size:11px;color:#999">${p.headsUp}</span></div>` : ''}
         ${p.reasons.length ? `<div class="pick-reason"><strong>Why:</strong> ${p.reasons.join(' \u00B7 ')}</div>` : ''}
-        <a class="pick-link" href="${p.listingUrl}" target="_blank">View Listing &rarr;</a>
+        <a class="pick-link" href="${p.listingUrl}" onclick="goToListing('${p.listingUrl}',event)">View Listing &rarr;</a>
       </div>
     </div></div>`;
   }).join('');
