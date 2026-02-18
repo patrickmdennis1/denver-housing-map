@@ -1083,12 +1083,14 @@ function saveEdit(propId, field, value) {
     field: field,
     value: value === null ? null : String(value),
     updated_by: AppState.user,
+    updated_at: new Date().toISOString(),
   };
-  fetch(SUPABASE_URL + '/rest/v1/housing_edits', {
+  fetch(SUPABASE_URL + '/rest/v1/housing_edits?on_conflict=property_id,field', {
     method: 'POST',
     headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates' },
     body: JSON.stringify(payload),
-  }).catch(err => console.warn('Supabase save failed:', err));
+  }).then(r => { if (!r.ok) r.text().then(t => console.warn('Supabase save error:', r.status, t)); })
+    .catch(err => console.warn('Supabase save failed:', err));
 }
 
 // ============================================================
