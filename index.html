@@ -969,6 +969,17 @@ const NEIGHBORHOOD_COLORS = {"Highly Recommended": {"fill": "#2E7D32", "opacity"
 // Denver Housing Command Center — app.js
 
 // ============================================================
+// SUPABASE CONFIG
+// ============================================================
+const SUPABASE_URL = 'https://abacciajgomkgofcnuzu.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_bFghh6nZrswTGWnmAnOgiA_VE5_HH9O';
+const SB_HEADERS = {
+  'apikey': SUPABASE_KEY,
+  'Authorization': 'Bearer ' + SUPABASE_KEY,
+  'Content-Type': 'application/json',
+};
+
+// ============================================================
 // CONSTANTS
 // ============================================================
 const TIER_COLORS = { A: '#2E7D32', B: '#1565C0', C: '#F9A825', D: '#E65100', F: '#C62828' };
@@ -1030,8 +1041,27 @@ async function loadData() {
   try {
     const resp = await fetch('properties.json');
     const data = await resp.json();
-    // Merge localStorage edits
-    const edits = JSON.parse(localStorage.getItem('denver-housing-edits') || '{}');
+
+    // Fetch edits from Supabase
+    let edits = {};
+    try {
+      const sbResp = await fetch(SUPABASE_URL + '/rest/v1/housing_edits?select=property_id,field,value', { headers: SB_HEADERS });
+      if (sbResp.ok) {
+        const rows = await sbResp.json();
+        rows.forEach(r => {
+          if (!edits[r.property_id]) edits[r.property_id] = {};
+          // Parse numeric values back to numbers for ratings
+          let val = r.value;
+          if (r.field === 'patRating' || r.field === 'kalliopiRating') {
+            val = val === null || val === 'null' ? null : parseInt(val);
+          }
+          edits[r.property_id][r.field] = val;
+        });
+      }
+    } catch (sbErr) {
+      console.warn('Supabase fetch failed, using local data only:', sbErr);
+    }
+
     AppState.properties = data.map(p => {
       const e = edits[p.id] || {};
       return { ...p, ...e };
@@ -1043,13 +1073,22 @@ async function loadData() {
 }
 
 function saveEdit(propId, field, value) {
-  const edits = JSON.parse(localStorage.getItem('denver-housing-edits') || '{}');
-  if (!edits[propId]) edits[propId] = {};
-  edits[propId][field] = value;
-  localStorage.setItem('denver-housing-edits', JSON.stringify(edits));
-  // Update in-memory state
+  // Update in-memory state immediately
   const prop = AppState.properties.find(p => p.id === propId);
   if (prop) prop[field] = value;
+
+  // Upsert to Supabase (fire-and-forget for responsiveness)
+  const payload = {
+    property_id: propId,
+    field: field,
+    value: value === null ? null : String(value),
+    updated_by: AppState.user,
+  };
+  fetch(SUPABASE_URL + '/rest/v1/housing_edits', {
+    method: 'POST',
+    headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates' },
+    body: JSON.stringify(payload),
+  }).catch(err => console.warn('Supabase save failed:', err));
 }
 
 // ============================================================
