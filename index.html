@@ -210,6 +210,10 @@ body {
   font-size: 16px;
   font-weight: 800;
   color: #fff;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.card-score.has-ratings {
+  box-shadow: 0 0 0 2.5px #e8c547;
 }
 .card-name { font-size: 16px; font-weight: 700; }
 .card-meta {
@@ -931,6 +935,17 @@ function scoreColor(s) {
   return '#FF9800';
 }
 
+// Blended score: Howie base + user ratings
+// No ratings: 100% Howie | One rating: 70% Howie + 30% user | Both: 50% Howie + 25% each
+function blendedScore(p) {
+  const pat = p.patRating ? p.patRating * 20 : null;
+  const kal = p.kalliopiRating ? p.kalliopiRating * 20 : null;
+  if (pat !== null && kal !== null) return Math.round(p.howieScore * 0.5 + pat * 0.25 + kal * 0.25);
+  if (pat !== null) return Math.round(p.howieScore * 0.7 + pat * 0.3);
+  if (kal !== null) return Math.round(p.howieScore * 0.7 + kal * 0.3);
+  return p.howieScore;
+}
+
 // ============================================================
 // APP STATE
 // ============================================================
@@ -1040,7 +1055,7 @@ function renderBrowse() {
   let props = [...AppState.properties];
 
   // Sort
-  if (AppState.sort === 'score') props.sort((a, b) => b.howieScore - a.howieScore);
+  if (AppState.sort === 'score') props.sort((a, b) => blendedScore(b) - blendedScore(a));
   else if (AppState.sort === 'rent') props.sort((a, b) => (a.rent || 99999) - (b.rent || 99999));
   else if (AppState.sort === 'ppsf') props.sort((a, b) => {
     const aPpsf = (a.rent && a.sqft) ? a.rent / a.sqft : 99;
@@ -1059,8 +1074,10 @@ function renderBrowse() {
   </div>`;
 
   const cardsHtml = props.map(p => {
-    const sc = scoreColor(p.howieScore);
+    const bs = blendedScore(p);
+    const sc = scoreColor(bs);
     const tc = TIER_COLORS[p.valueTier] || '#999';
+    const hasUserRatings = p.patRating || p.kalliopiRating;
 
     return `<div class="prop-card-browse" data-prop="${p.id}">
       <div class="card-top">
@@ -1077,7 +1094,7 @@ function renderBrowse() {
             ${p.valueTier ? `<span class="tier-badge" style="background:${tc}">${p.valueTier}</span>` : ''}
           </div>
         </div>
-        <div class="card-score" style="background:${sc}">${p.howieScore}</div>
+        <div class="card-score${hasUserRatings ? ' has-ratings' : ''}" style="background:${sc}">${bs}</div>
       </div>
       <div class="card-desc">${p.description || ''}</div>
       ${p.headsUp ? `<div class="card-alert">HEADS UP: ${p.headsUp}</div>` : ''}
@@ -1112,12 +1129,20 @@ function rate(propId, field, value) {
   if (!prop) return;
   const newVal = prop[field] === value ? null : value;
   saveEdit(propId, field, newVal);
-  // Update star buttons inline (no full re-render)
+  // Update star buttons + blended score inline (no full re-render)
   const card = document.querySelector(`[data-prop="${propId}"]`);
   if (card) {
     card.querySelectorAll(`.star-btn[data-field="${field}"]`).forEach(btn => {
       btn.classList.toggle('filled', parseInt(btn.dataset.val) === newVal);
     });
+    // Recalculate and update the score badge
+    const bs = blendedScore(prop);
+    const badge = card.querySelector('.card-score');
+    if (badge) {
+      badge.textContent = bs;
+      badge.style.background = scoreColor(bs);
+      badge.classList.toggle('has-ratings', !!(prop.patRating || prop.kalliopiRating));
+    }
   }
 }
 
