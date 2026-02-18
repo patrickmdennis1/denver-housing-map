@@ -1086,6 +1086,8 @@ function navigate(hash) {
     setTimeout(() => {
       Plotly.Plots.resize('chart-rent-sqft');
       Plotly.Plots.resize('chart-score-rent');
+      const cc = document.getElementById('chart-consensus');
+      if (cc && cc.data) Plotly.Plots.resize('chart-consensus');
     }, 50);
   }
   if (id === 'browse') renderBrowse();
@@ -1517,6 +1519,7 @@ function initCharts() {
     <div class="chart-subtabs">
       <button class="chart-subtab active" onclick="switchChart('rent-sqft')">Rent vs Sqft</button>
       <button class="chart-subtab" onclick="switchChart('score-rent')">Score vs Rent</button>
+      <button class="chart-subtab" onclick="switchChart('consensus')">Consensus</button>
     </div>
     <div id="chart-pane-rent-sqft">
       <div class="chart-box"><div id="chart-rent-sqft" class="chart-plot"></div></div>
@@ -1526,20 +1529,29 @@ function initCharts() {
       <div class="chart-box"><div id="chart-score-rent" class="chart-plot"></div></div>
       <div class="table-wrap"><table><thead><tr><th>Score</th><th>Tier</th><th>Property</th><th>Neighborhood</th><th>Rent</th><th>Beds</th></tr></thead><tbody id="table-score-rent"></tbody></table></div>
     </div>
+    <div id="chart-pane-consensus" style="display:none">
+      <div class="chart-box"><div id="chart-consensus" class="chart-plot"></div></div>
+      <div id="consensus-empty" style="display:none;text-align:center;padding:40px;color:#aaa">Rate properties in the Browse tab to see consensus here.</div>
+      <div class="table-wrap"><table><thead><tr><th>Score</th><th>Property</th><th>Pat</th><th>Kalliopi</th><th>Gap</th><th>Rent</th></tr></thead><tbody id="table-consensus"></tbody></table></div>
+    </div>
   </div>`;
 
   buildRentSqftChart();
   buildScoreRentChart();
+  buildConsensusChart();
 }
 
 function switchChart(tab) {
   currentChartTab = tab;
-  document.querySelectorAll('.chart-subtab').forEach(b => b.classList.toggle('active', b.textContent.includes(tab === 'rent-sqft' ? 'Sqft' : 'Score')));
+  const tabLabels = { 'rent-sqft': 'Rent vs Sqft', 'score-rent': 'Score vs Rent', 'consensus': 'Consensus' };
+  document.querySelectorAll('.chart-subtab').forEach(b => b.classList.toggle('active', b.textContent === tabLabels[tab]));
   document.getElementById('chart-pane-rent-sqft').style.display = tab === 'rent-sqft' ? '' : 'none';
   document.getElementById('chart-pane-score-rent').style.display = tab === 'score-rent' ? '' : 'none';
+  document.getElementById('chart-pane-consensus').style.display = tab === 'consensus' ? '' : 'none';
   setTimeout(() => {
     if (tab === 'rent-sqft') Plotly.Plots.resize('chart-rent-sqft');
-    else Plotly.Plots.resize('chart-score-rent');
+    else if (tab === 'score-rent') Plotly.Plots.resize('chart-score-rent');
+    else if (tab === 'consensus') Plotly.Plots.resize('chart-consensus');
   }, 50);
 }
 
@@ -1637,6 +1649,71 @@ function buildScoreRentChart() {
     const tr = document.createElement('tr');
     if (p.listingUrl) { tr.classList.add('clickable-row'); tr.onclick = () => goToListing(p.listingUrl); }
     tr.innerHTML = `<td><span class="score-pill" style="${sc}">${p.howieScore}</span></td><td>${p.valueTier ? `<span class="tier-badge" style="background:${TIER_COLORS[p.valueTier]}">${p.valueTier}</span>` : ''}</td><td><strong>${p.name}</strong></td><td><span style="display:inline-block;padding:2px 8px;border-radius:10px;color:#fff;font-size:11px;background:${hc}">${p.neighborhood}</span></td><td>$${(p.rent||0).toLocaleString()}</td><td>${p.beds}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function buildConsensusChart() {
+  const props = AppState.properties.filter(p => p.patRating && p.kalliopiRating);
+  const emptyEl = document.getElementById('consensus-empty');
+
+  if (props.length === 0) {
+    emptyEl.style.display = '';
+    return;
+  }
+  emptyEl.style.display = 'none';
+
+  const trace = {
+    x: props.map(p => p.patRating), y: props.map(p => p.kalliopiRating),
+    mode: 'markers+text', type: 'scatter',
+    text: props.map(p => p.name), textposition: 'top center',
+    textfont: { size: 10, color: '#888', family: 'Inter' },
+    hoverinfo: 'none',
+    marker: {
+      size: props.map(p => Math.max(p.howieScore * 0.6, 12)),
+      color: props.map(p => (p.rent && p.sqft) ? Math.round(p.rent / p.sqft * 100) / 100 : 2.0),
+      colorscale: [[0,'#2E7D32'],[0.35,'#66BB6A'],[0.5,'#FDD835'],[0.7,'#FF9800'],[1,'#D32F2F']],
+      colorbar: { title: { text: '$/sqft', font: { size: 11, family: 'Inter' } }, thickness: 14, len: 0.4, tickfont: { size: 10 }, tickprefix: '$', outlinewidth: 0 },
+      line: { width: 2, color: '#fff' }, opacity: 0.9, sizemode: 'diameter'
+    },
+    customdata: props.map((p, i) => i)
+  };
+
+  // Perfect agreement diagonal
+  const diagonal = { x: [0.5, 5.5], y: [0.5, 5.5], mode: 'lines', type: 'scatter', line: { color: 'rgba(0,0,0,0.1)', width: 1.5, dash: 'dash' }, hoverinfo: 'none', showlegend: false };
+
+  const layout = {
+    xaxis: { title: { text: "Pat's Rating", font: { size: 12, family: 'Inter', color: '#888' } }, range: [0.5, 5.5], dtick: 1, gridcolor: '#f0f0ee', zeroline: false, tickfont: { family: 'Inter', size: 11, color: '#aaa' } },
+    yaxis: { title: { text: "Kalliopi's Rating", font: { size: 12, family: 'Inter', color: '#888' } }, range: [0.5, 5.5], dtick: 1, gridcolor: '#f0f0ee', zeroline: false, tickfont: { family: 'Inter', size: 11, color: '#aaa' } },
+    plot_bgcolor: '#fafaf8', paper_bgcolor: '#fff',
+    margin: { t: 24, r: 80, b: 56, l: 60 },
+    showlegend: false, hovermode: 'closest', font: { family: 'Inter' },
+    shapes: [
+      // Agreement zone (within 1 of diagonal)
+      { type: 'rect', x0: 0.5, x1: 5.5, y0: 0.5, y1: 5.5, fillcolor: 'rgba(46,125,50,0.03)', line: { width: 0 }, layer: 'below' },
+    ],
+    annotations: [
+      { x: 5.3, y: 5.3, text: 'Agreement', font: { size: 10, color: 'rgba(0,0,0,0.25)', family: 'Inter' }, showarrow: false, xanchor: 'right' },
+      { x: 1, y: 5, text: 'Kalliopi likes more', font: { size: 10, color: 'rgba(0,0,0,0.2)', family: 'Inter' }, showarrow: false, xanchor: 'left' },
+      { x: 5, y: 1, text: 'Pat likes more', font: { size: 10, color: 'rgba(0,0,0,0.2)', family: 'Inter' }, showarrow: false, xanchor: 'right' },
+    ]
+  };
+
+  Plotly.newPlot('chart-consensus', [trace, diagonal], layout, { responsive: true, displayModeBar: true, modeBarButtonsToRemove: ['lasso2d', 'select2d', 'autoScale2d'], displaylogo: false });
+
+  const chartEl = document.getElementById('chart-consensus');
+  bindChartHover(chartEl, props);
+
+  // Table sorted by gap (biggest disagreements first)
+  const tbody = document.getElementById('table-consensus');
+  const sorted = [...props].sort((a, b) => Math.abs(b.patRating - b.kalliopiRating) - Math.abs(a.patRating - a.kalliopiRating));
+  sorted.forEach(p => {
+    const gap = Math.abs(p.patRating - p.kalliopiRating);
+    const gapColor = gap === 0 ? '#2E7D32' : gap === 1 ? '#66BB6A' : gap === 2 ? '#FDD835' : '#FF9800';
+    const sc = scoreColor(p.howieScore);
+    const tr = document.createElement('tr');
+    if (p.listingUrl) { tr.classList.add('clickable-row'); tr.onclick = () => goToListing(p.listingUrl); }
+    tr.innerHTML = `<td><span class="score-pill" style="background:${sc}">${p.howieScore}</span></td><td><strong>${p.name}</strong><br><span style="color:#999;font-size:11px">${p.neighborhood}</span></td><td style="text-align:center;font-weight:700;font-size:16px">${p.patRating}</td><td style="text-align:center;font-weight:700;font-size:16px">${p.kalliopiRating}</td><td style="text-align:center"><span style="display:inline-block;padding:2px 10px;border-radius:10px;font-weight:600;font-size:12px;color:#fff;background:${gapColor}">${gap === 0 ? 'Aligned' : gap}</span></td><td>$${(p.rent||0).toLocaleString()}</td>`;
     tbody.appendChild(tr);
   });
 }
