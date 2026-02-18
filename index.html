@@ -143,6 +143,7 @@ body {
 .filter-bar {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
   margin-bottom: 16px;
   position: sticky;
@@ -247,7 +248,8 @@ body {
 }
 .card-ratings {
   display: flex;
-  gap: 24px;
+  flex-direction: column;
+  gap: 8px;
   margin-top: 12px;
   padding-top: 10px;
   border-top: 1px solid #f4f4f2;
@@ -806,6 +808,8 @@ body {
 .table-wrap td { padding: 10px 12px; border-bottom: 1px solid #f4f4f2; }
 .table-wrap tr:last-child td { border-bottom: none; }
 .table-wrap tr:hover td { background: #fafaf8; }
+.table-wrap tr.clickable-row { cursor: pointer; }
+.table-wrap tr.clickable-row:active td { background: #f0f0ec; }
 .score-pill {
   display: inline-block;
   padding: 3px 10px;
@@ -848,6 +852,8 @@ body {
   #map-sidebar.collapsed ~ #sb-toggle { left: 10px; }
   .chart-plot { height: 50vh; min-height: 280px; }
   .star-btn { width: 36px; height: 36px; }
+  .card-link { padding: 10px 18px; font-size: 13px; }
+  .more-btn { padding: 10px 18px; font-size: 13px; }
 }
 
 </style>
@@ -1033,10 +1039,6 @@ function renderBrowse() {
   const container = document.getElementById('view-browse');
   let props = [...AppState.properties];
 
-  // Filter
-  if (AppState.filter === 'Active') props = props.filter(p => p.status === 'Active');
-  else if (AppState.filter === 'Passed') props = props.filter(p => p.status === 'Passed');
-
   // Sort
   if (AppState.sort === 'score') props.sort((a, b) => b.howieScore - a.howieScore);
   else if (AppState.sort === 'rent') props.sort((a, b) => (a.rent || 99999) - (b.rent || 99999));
@@ -1047,8 +1049,7 @@ function renderBrowse() {
   });
   else if (AppState.sort === 'name') props.sort((a, b) => a.name.localeCompare(b.name));
 
-  const filterHtml = `<div class="filter-bar">
-    ${['Active', 'Passed', 'All'].map(s => `<button class="status-pill${AppState.filter === s ? ' active' : ''}" onclick="setFilter('${s}')">${s}</button>`).join('')}
+  const sortHtml = `<div class="filter-bar">
     <select class="sort-select" onchange="setSort(this.value)">
       <option value="score"${AppState.sort === 'score' ? ' selected' : ''}>Score</option>
       <option value="rent"${AppState.sort === 'rent' ? ' selected' : ''}>Rent</option>
@@ -1060,13 +1061,8 @@ function renderBrowse() {
   const cardsHtml = props.map(p => {
     const sc = scoreColor(p.howieScore);
     const tc = TIER_COLORS[p.valueTier] || '#999';
-    const ppsf = (p.rent && p.sqft) ? '$' + (p.rent / p.sqft).toFixed(2) + '/sqft' : '';
-    const patField = AppState.user === 'pat' ? 'patRating' : 'kalliopiRating';
-    const otherField = AppState.user === 'pat' ? 'kalliopiRating' : 'patRating';
-    const patLabel = AppState.user === 'pat' ? 'Pat' : 'Kalliopi';
-    const otherLabel = AppState.user === 'pat' ? 'Kalliopi' : 'Pat';
 
-    return `<div class="prop-card-browse">
+    return `<div class="prop-card-browse" data-prop="${p.id}">
       <div class="card-top">
         <div>
           <div class="card-name">${p.name}</div>
@@ -1087,29 +1083,28 @@ function renderBrowse() {
       ${p.headsUp ? `<div class="card-alert">HEADS UP: ${p.headsUp}</div>` : ''}
       <div class="card-ratings">
         <div class="rating-group">
-          <span class="rating-label">${patLabel}:</span>
+          <span class="rating-label">Pat:</span>
           <div class="star-row">${[1,2,3,4,5].map(n =>
-            `<button class="star-btn${p[patField] === n ? ' filled' : ''}" onclick="rate('${p.id}','${patField}',${n})">${n}</button>`
+            `<button class="star-btn${p.patRating === n ? ' filled' : ''}" data-field="patRating" data-val="${n}" onclick="rate('${p.id}','patRating',${n})">${n}</button>`
           ).join('')}</div>
         </div>
         <div class="rating-group">
-          <span class="rating-label">${otherLabel}:</span>
+          <span class="rating-label">Kalliopi:</span>
           <div class="star-row">${[1,2,3,4,5].map(n =>
-            `<button class="star-btn${p[otherField] === n ? ' filled' : ''}" onclick="rate('${p.id}','${otherField}',${n})">${n}</button>`
+            `<button class="star-btn${p.kalliopiRating === n ? ' filled' : ''}" data-field="kalliopiRating" data-val="${n}" onclick="rate('${p.id}','kalliopiRating',${n})">${n}</button>`
           ).join('')}</div>
         </div>
       </div>
       <div class="card-actions">
-        ${p.listingUrl ? `<a class="card-link" href="${p.listingUrl}" target="_blank" rel="noopener">View Listing &rarr;</a>` : '<span></span>'}
+        ${p.listingUrl ? `<a class="card-link" href="${p.listingUrl}" onclick="openListing(event, '${p.id}')">View Listing &rarr;</a>` : '<span></span>'}
         <button class="more-btn" onclick="openDetail('${p.id}')">More &rarr;</button>
       </div>
     </div>`;
   }).join('');
 
-  container.innerHTML = `<div class="browse-container">${filterHtml}${cardsHtml}</div>`;
+  container.innerHTML = `<div class="browse-container">${sortHtml}${cardsHtml}</div>`;
 }
 
-function setFilter(f) { AppState.filter = f; renderBrowse(); }
 function setSort(s) { AppState.sort = s; renderBrowse(); }
 
 function rate(propId, field, value) {
@@ -1117,7 +1112,21 @@ function rate(propId, field, value) {
   if (!prop) return;
   const newVal = prop[field] === value ? null : value;
   saveEdit(propId, field, newVal);
-  renderBrowse();
+  // Update star buttons inline (no full re-render)
+  const card = document.querySelector(`[data-prop="${propId}"]`);
+  if (card) {
+    card.querySelectorAll(`.star-btn[data-field="${field}"]`).forEach(btn => {
+      btn.classList.toggle('filled', parseInt(btn.dataset.val) === newVal);
+    });
+  }
+}
+
+function openListing(e, propId) {
+  e.preventDefault();
+  const prop = AppState.properties.find(p => p.id === propId);
+  if (prop && prop.listingUrl) {
+    window.open(prop.listingUrl, '_blank');
+  }
 }
 
 // ============================================================
@@ -1472,6 +1481,7 @@ function buildRentSqftChart() {
     const sc = p.howieScore >= 80 ? 'background:#2E7D32' : p.howieScore >= 60 ? 'background:#66BB6A' : p.howieScore >= 40 ? 'background:#FDD835;color:#333' : 'background:#FF9800';
     const ppsfVal = (p.rent && p.sqft) ? '$' + (p.rent / p.sqft).toFixed(2) : '\u2014';
     const tr = document.createElement('tr');
+    if (p.listingUrl) { tr.classList.add('clickable-row'); tr.onclick = () => window.open(p.listingUrl, '_blank'); }
     tr.innerHTML = `<td><span class="score-pill" style="${sc}">${p.howieScore}</span></td><td>${p.valueTier ? `<span class="tier-badge" style="background:${TIER_COLORS[p.valueTier]}">${p.valueTier}</span>` : ''}</td><td><strong>${p.name}</strong><br><span style="color:#999;font-size:11px">${p.neighborhood}</span></td><td>$${(p.rent||0).toLocaleString()}</td><td>${(p.sqft||0).toLocaleString()}</td><td style="color:#888">${ppsfVal}</td><td>${p.beds}</td>`;
     tbody.appendChild(tr);
   });
@@ -1523,28 +1533,32 @@ function buildScoreRentChart() {
     const sc = p.howieScore >= 80 ? 'background:#2E7D32' : p.howieScore >= 60 ? 'background:#66BB6A' : p.howieScore >= 40 ? 'background:#FDD835;color:#333' : 'background:#FF9800';
     const hc = HOOD_COLORS[p.neighborhood] || '#999';
     const tr = document.createElement('tr');
+    if (p.listingUrl) { tr.classList.add('clickable-row'); tr.onclick = () => window.open(p.listingUrl, '_blank'); }
     tr.innerHTML = `<td><span class="score-pill" style="${sc}">${p.howieScore}</span></td><td>${p.valueTier ? `<span class="tier-badge" style="background:${TIER_COLORS[p.valueTier]}">${p.valueTier}</span>` : ''}</td><td><strong>${p.name}</strong></td><td><span style="display:inline-block;padding:2px 8px;border-radius:10px;color:#fff;font-size:11px;background:${hc}">${p.neighborhood}</span></td><td>$${(p.rent||0).toLocaleString()}</td><td>${p.beds}</td>`;
     tbody.appendChild(tr);
   });
 }
 
-// Chart hover card logic
+// Chart hover/tap card logic
 let hcTimer = null;
 let hcPinned = false;
+const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
 function bindChartHover(chartEl, props) {
   const card = document.getElementById('chart-hover-card');
 
-  chartEl.on('plotly_hover', (data) => {
-    if (hcPinned) return;
-    const pt = data.points[0];
-    if (pt.customdata === undefined) return;
-    const p = props[pt.customdata];
-    if (!p) return;
-    clearTimeout(hcTimer);
-    showHoverCard(p, card, data.event.clientX || data.event.pageX, data.event.clientY || data.event.pageY);
-  });
-
-  chartEl.on('plotly_unhover', () => { if (!hcPinned) scheduleHideCard(); });
+  if (!isMobile) {
+    chartEl.on('plotly_hover', (data) => {
+      if (hcPinned) return;
+      const pt = data.points[0];
+      if (pt.customdata === undefined) return;
+      const p = props[pt.customdata];
+      if (!p) return;
+      clearTimeout(hcTimer);
+      showHoverCard(p, card, data.event.clientX || data.event.pageX, data.event.clientY || data.event.pageY);
+    });
+    chartEl.on('plotly_unhover', () => { if (!hcPinned) scheduleHideCard(); });
+  }
 
   chartEl.on('plotly_click', (data) => {
     const pt = data.points[0];
@@ -1553,8 +1567,44 @@ function bindChartHover(chartEl, props) {
     if (!p) return;
     hcPinned = true;
     clearTimeout(hcTimer);
-    showHoverCard(p, card, data.event.clientX || data.event.pageX, data.event.clientY || data.event.pageY);
+    if (isMobile) {
+      showMobileCard(p);
+    } else {
+      showHoverCard(p, card, data.event.clientX || data.event.pageX, data.event.clientY || data.event.pageY);
+    }
   });
+}
+
+function showMobileCard(p) {
+  const sc = scoreColor(p.howieScore);
+  const tc = TIER_COLORS[p.valueTier] || '#999';
+  const ppsf = (p.rent && p.sqft) ? '$' + (p.rent / p.sqft).toFixed(2) : '\u2014';
+  const overlay = document.getElementById('detail-overlay');
+  const sheet = document.getElementById('detail-sheet');
+
+  sheet.innerHTML = `
+    <button class="dsheet-close" onclick="closeDetail()">&times;</button>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px">
+      <div>
+        <h2 style="margin-bottom:4px">${p.name}</h2>
+        <div style="font-size:12px;color:#888">${p.neighborhood} ${p.valueTier ? `<span class="tier-badge" style="background:${tc};margin-left:4px">${p.valueTier}</span>` : ''}</div>
+      </div>
+      <div class="card-score" style="background:${sc}">${p.howieScore}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#eee;border-radius:10px;overflow:hidden;margin-bottom:12px">
+      <div style="background:#fff;padding:10px;text-align:center"><div style="font-size:16px;font-weight:700">$${(p.rent||0).toLocaleString()}</div><div style="font-size:9px;color:#aaa;text-transform:uppercase;margin-top:1px">Rent</div></div>
+      <div style="background:#fff;padding:10px;text-align:center"><div style="font-size:16px;font-weight:700">${(p.sqft||0).toLocaleString()}</div><div style="font-size:9px;color:#aaa;text-transform:uppercase;margin-top:1px">Sqft</div></div>
+      <div style="background:#fff;padding:10px;text-align:center"><div style="font-size:16px;font-weight:700">${p.beds}</div><div style="font-size:9px;color:#aaa;text-transform:uppercase;margin-top:1px">Beds</div></div>
+      <div style="background:#fff;padding:10px;text-align:center"><div style="font-size:16px;font-weight:700">${ppsf}</div><div style="font-size:9px;color:#aaa;text-transform:uppercase;margin-top:1px">$/Sqft</div></div>
+    </div>
+    ${p.description ? `<p style="font-size:13px;color:#666;font-style:italic;line-height:1.5;margin-bottom:12px">${p.description}</p>` : ''}
+    ${p.listingUrl ? `<a class="dsheet-mapbtn" href="${p.listingUrl}" onclick="event.preventDefault();window.open('${p.listingUrl}','_blank')" style="display:block;text-align:center;text-decoration:none">View Listing &rarr;</a>` : ''}
+  `;
+
+  overlay.classList.remove('hidden');
+  sheet.classList.remove('hidden');
+  requestAnimationFrame(() => { overlay.classList.add('visible'); sheet.classList.add('visible'); });
+  hcPinned = false;
 }
 
 function showHoverCard(p, card, mx, my) {
@@ -1586,7 +1636,7 @@ function scheduleHideCard() {
   hcTimer = setTimeout(() => { if (!hcPinned) hideHoverCard(); }, 300);
 }
 
-// Keep hover card alive on mouseenter
+// Keep hover card alive on mouseenter (desktop only)
 document.getElementById('chart-hover-card').addEventListener('mouseenter', () => clearTimeout(hcTimer));
 document.getElementById('chart-hover-card').addEventListener('mouseleave', () => { if (!hcPinned) scheduleHideCard(); });
 
