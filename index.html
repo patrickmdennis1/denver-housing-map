@@ -253,17 +253,28 @@ body {
 .card-ratings {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   margin-top: 12px;
   padding-top: 10px;
   border-top: 1px solid #f4f4f2;
 }
-.rating-group { display: flex; align-items: center; gap: 6px; }
-.rating-label { font-size: 11px; color: #aaa; font-weight: 600; }
-.star-row { display: flex; gap: 2px; }
+.rating-row {
+  display: grid;
+  grid-template-columns: 64px 1fr 1fr 1fr 1fr 1fr;
+  gap: 4px;
+  align-items: center;
+}
+.rating-label {
+  font-size: 11px;
+  color: #aaa;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .star-btn {
-  width: 32px;
-  height: 32px;
+  width: 100%;
+  height: 38px;
   border: 2px solid #e0e0dc;
   border-radius: 8px;
   background: #fff;
@@ -313,6 +324,19 @@ body {
 }
 .more-btn:hover { border-color: #ccc; color: #555; }
 .more-btn.has-feedback { border-color: #e8c547; color: #b89a2a; background: #FFFDF5; }
+.map-btn {
+  padding: 7px 14px;
+  border: 2px solid #e0e0dc;
+  border-radius: 8px;
+  background: #fff;
+  color: #888;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.map-btn:hover { border-color: #ccc; color: #555; }
 
 /* ---- DETAIL SHEET ---- */
 .overlay {
@@ -891,9 +915,9 @@ body {
   #sb-toggle { left: 268px; }
   #map-sidebar.collapsed ~ #sb-toggle { left: 10px; }
   .chart-plot { height: 50vh; min-height: 280px; }
-  .star-btn { width: 36px; height: 36px; }
   .card-link { padding: 10px 18px; font-size: 13px; }
-  .more-btn { padding: 10px 18px; font-size: 13px; }
+  .more-btn { padding: 10px 14px; font-size: 13px; }
+  .map-btn { padding: 10px 14px; font-size: 13px; }
 }
 
 </style>
@@ -1135,21 +1159,22 @@ function renderBrowse() {
       <div class="card-desc">${p.description || ''}</div>
       ${p.headsUp ? `<div class="card-alert">HEADS UP: ${p.headsUp}</div>` : ''}
       <div class="card-ratings">
-        <div class="rating-group">
-          <span class="rating-label">Pat:</span>
-          <div class="star-row">${[1,2,3,4,5].map(n =>
+        <div class="rating-row">
+          <span class="rating-label">Pat</span>
+          ${[1,2,3,4,5].map(n =>
             `<button class="star-btn${p.patRating === n ? ' filled' : ''}" data-field="patRating" data-val="${n}" onclick="rate('${p.id}','patRating',${n})">${n}</button>`
-          ).join('')}</div>
+          ).join('')}
         </div>
-        <div class="rating-group">
-          <span class="rating-label">Kalliopi:</span>
-          <div class="star-row">${[1,2,3,4,5].map(n =>
+        <div class="rating-row">
+          <span class="rating-label">Kalliopi</span>
+          ${[1,2,3,4,5].map(n =>
             `<button class="star-btn${p.kalliopiRating === n ? ' filled' : ''}" data-field="kalliopiRating" data-val="${n}" onclick="rate('${p.id}','kalliopiRating',${n})">${n}</button>`
-          ).join('')}</div>
+          ).join('')}
         </div>
       </div>
       <div class="card-actions">
         ${p.listingUrl ? `<a class="card-link" href="${p.listingUrl}" onclick="goToListing('${p.listingUrl}',event)">View Listing &rarr;</a>` : '<span></span>'}
+        ${p.lat && p.lon ? `<button class="map-btn" onclick="flyToProperty('${p.id}')">Map</button>` : ''}
         <button class="more-btn${(p.patNotes || p.kalliopiNotes) ? ' has-feedback' : ''}" onclick="openFeedback('${p.id}')">${(p.patNotes || p.kalliopiNotes) ? 'Feedback \u2713' : 'Feedback'}</button>
       </div>
     </div>`;
