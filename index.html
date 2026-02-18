@@ -38,30 +38,6 @@ body {
 }
 .hdr-title { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
 .hdr-sub { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 2px; }
-.user-toggle {
-  display: flex;
-  gap: 2px;
-  background: rgba(255,255,255,0.1);
-  border-radius: 8px;
-  padding: 2px;
-}
-.ubtn {
-  padding: 5px 14px;
-  border: none;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  background: transparent;
-  color: rgba(255,255,255,0.5);
-  transition: all 0.15s;
-}
-.ubtn.active {
-  background: #e8c547;
-  color: #1a1a1a;
-}
-
 /* Desktop nav */
 .dnav {
   display: none;
@@ -931,10 +907,6 @@ body {
         <h1 class="hdr-title">Denver Housing</h1>
         <p class="hdr-sub">Spring 2026 &mdash; Pat &amp; Kalliopi</p>
       </div>
-      <div class="user-toggle" id="user-toggle">
-        <button class="ubtn active" data-user="pat">Pat</button>
-        <button class="ubtn" data-user="kalliopi">Kalliopi</button>
-      </div>
     </div>
     <nav class="dnav" id="desktop-nav"></nav>
   </header>
@@ -1128,23 +1100,6 @@ function buildNav() {
   TABS.forEach(t => {
     dnav.innerHTML += `<a href="#${t.id}" class="nav-pill${t.id === 'browse' ? ' active' : ''}">${t.label}</a>`;
     bnav.innerHTML += `<a href="#${t.id}" class="bnav-item${t.id === 'browse' ? ' active' : ''}"><span class="bnav-icon">${t.icon}</span><span>${t.label}</span></a>`;
-  });
-}
-
-// ============================================================
-// USER IDENTITY
-// ============================================================
-function initUserToggle() {
-  const toggle = document.getElementById('user-toggle');
-  const btns = toggle.querySelectorAll('.ubtn');
-  btns.forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.user === AppState.user);
-    btn.addEventListener('click', () => {
-      AppState.user = btn.dataset.user;
-      localStorage.setItem('denver-housing-user', AppState.user);
-      btns.forEach(b => b.classList.toggle('active', b === btn));
-      if (AppState.view === 'browse') renderBrowse();
-    });
   });
 }
 
@@ -1636,21 +1591,22 @@ function buildRentSqftChart() {
 
 function buildScoreRentChart() {
   const props = AppState.properties.filter(p => p.rent);
-  const hoods = [...new Set(props.map(p => p.neighborhood))];
 
-  const traces = hoods.map(hood => {
-    const group = props.filter(p => p.neighborhood === hood);
-    const color = HOOD_COLORS[hood] || '#999';
-    return {
-      x: group.map(p => p.rent), y: group.map(p => p.howieScore),
-      mode: 'markers+text', type: 'scatter', name: hood,
-      text: group.map(p => p.name), textposition: 'top center',
-      textfont: { size: 9, color: '#888', family: 'Inter' },
-      hoverinfo: 'none',
-      marker: { size: group.map(p => p.sqft ? Math.max(Math.sqrt(p.sqft) * 0.8, 14) : 14), color, line: { width: 2, color: '#fff' }, opacity: 0.85, sizemode: 'diameter' },
-      customdata: group.map(p => props.indexOf(p))
-    };
-  });
+  const trace = {
+    x: props.map(p => p.rent), y: props.map(p => p.howieScore),
+    mode: 'markers+text', type: 'scatter',
+    text: props.map(p => p.name), textposition: 'top center',
+    textfont: { size: 9, color: '#888', family: 'Inter' },
+    hoverinfo: 'none',
+    marker: {
+      size: props.map(p => Math.max(p.howieScore * 0.6, 12)),
+      color: props.map(p => (p.rent && p.sqft) ? Math.round(p.rent / p.sqft * 100) / 100 : 2.0),
+      colorscale: [[0,'#2E7D32'],[0.35,'#66BB6A'],[0.5,'#FDD835'],[0.7,'#FF9800'],[1,'#D32F2F']],
+      colorbar: { title: { text: '$/sqft', font: { size: 11, family: 'Inter' } }, thickness: 14, len: 0.4, tickfont: { size: 10 }, tickprefix: '$', outlinewidth: 0 },
+      line: { width: 2, color: '#fff' }, opacity: 0.9, sizemode: 'diameter'
+    },
+    customdata: props.map((p, i) => i)
+  };
 
   const budgetLine = { x: [5000, 5000], y: [0, 100], mode: 'lines', type: 'scatter', line: { color: 'rgba(211,47,47,0.4)', width: 1.5, dash: 'dash' }, hoverinfo: 'none', showlegend: false };
 
@@ -1658,9 +1614,8 @@ function buildScoreRentChart() {
     xaxis: { title: { text: 'Monthly Rent', font: { size: 12, family: 'Inter', color: '#888' } }, range: [1400, 8000], gridcolor: '#f0f0ee', zeroline: false, tickprefix: '$', tickformat: ',', tickfont: { family: 'Inter', size: 11, color: '#aaa' } },
     yaxis: { title: { text: 'Overall Score', font: { size: 12, family: 'Inter', color: '#888' } }, range: [0, 105], gridcolor: '#f0f0ee', zeroline: false, tickfont: { family: 'Inter', size: 11, color: '#aaa' } },
     plot_bgcolor: '#fafaf8', paper_bgcolor: '#fff',
-    margin: { t: 24, r: 24, b: 56, l: 60 },
-    legend: { orientation: 'h', y: -0.15, x: 0.5, xanchor: 'center', font: { size: 11, family: 'Inter' } },
-    hovermode: 'closest', font: { family: 'Inter' },
+    margin: { t: 24, r: 80, b: 56, l: 60 },
+    showlegend: false, hovermode: 'closest', font: { family: 'Inter' },
     shapes: [
       { type: 'rect', x0: 1400, x1: 3500, y0: 75, y1: 105, fillcolor: 'rgba(46,125,50,0.05)', line: { width: 1, color: 'rgba(46,125,50,0.15)', dash: 'dot' }, layer: 'below' },
     ],
@@ -1669,7 +1624,7 @@ function buildScoreRentChart() {
     ]
   };
 
-  Plotly.newPlot('chart-score-rent', [...traces, budgetLine], layout, { responsive: true, displayModeBar: true, modeBarButtonsToRemove: ['lasso2d', 'select2d', 'autoScale2d'], displaylogo: false });
+  Plotly.newPlot('chart-score-rent', [trace, budgetLine], layout, { responsive: true, displayModeBar: true, modeBarButtonsToRemove: ['lasso2d', 'select2d', 'autoScale2d'], displaylogo: false });
 
   const chartEl = document.getElementById('chart-score-rent');
   bindChartHover(chartEl, props);
@@ -2028,7 +1983,6 @@ function submitUrl() {
 // ============================================================
 async function init() {
   buildNav();
-  initUserToggle();
   await loadData();
 
   // Route
